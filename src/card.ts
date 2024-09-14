@@ -22,12 +22,15 @@ export interface NumberCardInfo {
 }
 
 export interface ActionCardInfo {
+    // number?: CardNumber;
     action: ActionType;
     color: CardColor;
 }
 
 export interface WildCardInfo {
+    // number?: CardNumber;
     wildType: WildType;
+    color?: CardColor; // Make it optional for WildCards
 }
 
 export enum CardNumber {
