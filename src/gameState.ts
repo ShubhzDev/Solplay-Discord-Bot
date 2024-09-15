@@ -7,6 +7,8 @@ import {
   CardType,
   CardNumber,
   CardColor,
+  ActionCardInfo,
+  NumberCardInfo,
 } from "./card";
 import { Player } from "./player";
 
@@ -46,9 +48,49 @@ export function nextPlayer(gameState: GameState): void {
     gameState.players.length;
 }
 
+export function showValidCards(gameState: GameState, cards: Card[]) : Card[]{
+  let enabledCard: Card[] = [];
+  for (let i = 0; i < cards.length; i++) {
+    const card = cards[i];
+
+    if (card.type === CardType.NumberCard) {
+      if (gameState.currentCard.type === CardType.NumberCard) {
+        const currentCardInfo = gameState.currentCard.info as NumberCardInfo; // Type assertion
+        const cardInfo = card.info as NumberCardInfo; // Type assertion
+
+        if (cardInfo.color === currentCardInfo.color) {
+          enabledCard.push(card);
+        }
+
+        if (cardInfo.number === currentCardInfo.number) {
+          enabledCard.push(card);
+        }
+      }
+    } else if (gameState.currentCard.type === CardType.ActionCard) {
+      const currentCardInfo = gameState.currentCard.info as ActionCardInfo; // Type assertion
+      const cardInfo = card.info as ActionCardInfo; // Type assertion
+
+      if (
+        card.type === CardType.ActionCard &&
+        cardInfo.action === currentCardInfo.action
+      ) {
+        enabledCard.push(card);
+      }
+    }
+
+    if (card.type === CardType.WildCard) {
+      enabledCard.push(card);
+    }
+  }
+
+  return enabledCard;
+}
+
+export let deck: Card[];
+
 // Function to deal cards to players
 export function dealCards(gameState: GameState, numberOfCards: number): void {
-  const deck = shuffleDeck(createDeck());
+  deck = shuffleDeck(createDeck());
 
   // Deal cards to each player
   for (const player of gameState.players) {
