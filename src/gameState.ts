@@ -1,4 +1,4 @@
-// gameState.ts
+// src/gameState.ts
 
 import {
   Card,
@@ -17,8 +17,10 @@ export interface GameState {
   players: Player[];
   currentPlayerIndex: number;
   direction: number; // 1 for clockwise, -1 for counter-clockwise
+  deck: Card[]; // Add the deck to the game state
 }
 
+// Function to initialize the game state
 export function initializeGame(players: Player[]): GameState {
   const initialCard: Card = {
     type: CardType.NumberCard,
@@ -28,18 +30,23 @@ export function initializeGame(players: Player[]): GameState {
     },
   };
 
+  const deck = shuffleDeck(createDeck()); // Create and shuffle the deck
+
   return {
     currentCard: initialCard,
     players: players,
     currentPlayerIndex: 0,
     direction: 1,
+    deck: deck, // Initialize the deck in the game state
   };
 }
 
+// Function to update the current card
 export function updateCurrentCard(gameState: GameState, newCard: Card): void {
   gameState.currentCard = newCard;
 }
 
+// Function to move to the next player
 export function nextPlayer(gameState: GameState): void {
   gameState.currentPlayerIndex =
     (gameState.currentPlayerIndex +
@@ -48,7 +55,8 @@ export function nextPlayer(gameState: GameState): void {
     gameState.players.length;
 }
 
-export function showValidCards(gameState: GameState, cards: Card[]) : Card[]{
+// Function to show valid cards that can be played
+export function showValidCards(gameState: GameState, cards: Card[]): Card[] {
   let enabledCard: Card[] = [];
   for (let i = 0; i < cards.length; i++) {
     const card = cards[i];
@@ -86,22 +94,15 @@ export function showValidCards(gameState: GameState, cards: Card[]) : Card[]{
   return enabledCard;
 }
 
-export let deck: Card[];
-
 // Function to deal cards to players
 export function dealCards(gameState: GameState, numberOfCards: number): void {
-  deck = shuffleDeck(createDeck());
-
   // Deal cards to each player
   for (const player of gameState.players) {
     for (let i = 0; i < numberOfCards; i++) {
-      const card = deck.pop(); // Get the last card from the deck
+      const card = gameState.deck.pop(); // Get the last card from the deck
       if (card) {
         player.cards.push(card); // Add the card to the player's hand
       }
     }
   }
-
-  // Set the remaining deck in the game state if needed
-  // gameState.deck = deck; // Uncomment if you want to keep track of the deck
 }
