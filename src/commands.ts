@@ -2,8 +2,8 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, TextChannel } from 'discord.js';
 import { dealCards, initializeGame, displayCurrentCard } from './game'; // Import your game logic
 import { Player } from './player'; // Import your player types
-import { GameState} from './gameState'; // Import your game logic
-import { CardColor} from './card'; // Import your game logic
+import { GameState,showValidCards} from './gameState'; // Import your game logic
+import { CardColor, CardType,NumberCardInfo,ActionCardInfo } from './card'; // Ensure CardType is imported
 
 /**
  * Handles the /uno command to start a game of Uno.
@@ -40,58 +40,71 @@ export async function handleUnoCommand(interaction: any) {
 }
 
 /**
- * Displays all Uno cards as buttons for the current player.
+ * Displays card buttons for the current player based on valid moves.
  * @param channel The text channel to send the buttons to.
  * @param gameState The current game state.
  * @param currentPlayer The player whose turn it is.
  */
 export async function displayCardButtons(channel: TextChannel, gameState: GameState, currentPlayer: Player) {
-    const row = new ActionRowBuilder<ButtonBuilder>();
+    const rows: ActionRowBuilder<ButtonBuilder>[] = []; // Array to hold multiple rows
+    let currentRow = new ActionRowBuilder<ButtonBuilder>(); // Start with a new row
 
-    // Get the current card type
-    const currentCard = gameState.currentCard;
+    // Get valid cards for the current player
+    const validCards = showValidCards(gameState, currentPlayer.cards);
 
-    // Add number cards (0-9)
-    for (const color of Object.values(CardColor)) {
-        for (let number = 0; number <= 9; number++) {
-            row.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`play_${color}_${number}`)
-                    .setLabel(`${color} ${number}`)
-                    .setStyle(ButtonStyle.Primary)
-            );
+    // Helper function to add card buttons
+    const addCardButton = (id: string, label: string, isEnabled: boolean) => {
+        currentRow.addComponents(
+            new ButtonBuilder()
+                .setCustomId(id)
+                .setLabel(label)
+                .setStyle(isEnabled ? ButtonStyle.Primary : ButtonStyle.Secondary)
+                .setDisabled(!isEnabled)
+        );
+
+        // If we reach 5 buttons in the current row, push it and create a new one
+        if (currentRow.components.length >= 5) {
+            rows.push(currentRow);
+            currentRow = new ActionRowBuilder<ButtonBuilder>(); // Create a new row
+        }
+    };
+
+    // Only show the current player's cards
+    for (const card of currentPlayer.cards) {
+        let cardId: string;
+        let label: string;
+
+        if (card.type === CardType.NumberCard) {
+            const numberInfo = card.info as NumberCardInfo; // Type assertion
+            cardId = `play_${numberInfo.color}_${numberInfo.number}`;
+            label = `${numberInfo.color} ${numberInfo.number}`;
+        } else if (card.type === CardType.ActionCard) {
+            const actionInfo = card.info as ActionCardInfo; // Type assertion
+            cardId = `play_${actionInfo.color}_${actionInfo.action}`;
+            label = `${actionInfo.color} ${actionInfo.action}`;
+        } else {
+            continue; // Skip if it's not a valid card type
         }
 
-        // Add action cards (Skip, Reverse, Draw Two)
-        for (const action of ['Skip', 'Reverse', 'Draw Two']) {
-            row.addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`play_${color}_${action}`)
-                    .setLabel(`${color} ${action}`)
-                    .setStyle(ButtonStyle.Primary)
-            );
-        }
+        const isEnabled = validCards.includes(card); // Check if this card is valid to play
+
+        addCardButton(cardId, label, isEnabled);
     }
 
-    // Add wild cards
-    row.addComponents(
-        new ButtonBuilder()
-            .setCustomId('play_wild')
-            .setLabel('Wild Card')
-            .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId('play_wild_draw4')
-            .setLabel('Wild Draw 4')
-            .setStyle(ButtonStyle.Primary)
-    );
+    // Push the last row if it has any buttons
+    if (currentRow.components.length > 0) {
+        rows.push(currentRow);
+    }
 
-    // Add draw card button
-    row.addComponents(
+    // Add draw card button (always enabled), in a new row if needed
+    const drawCardRow = new ActionRowBuilder<ButtonBuilder>();
+    drawCardRow.addComponents(
         new ButtonBuilder()
             .setCustomId('draw_card')
             .setLabel('Draw Card')
-            .setStyle(ButtonStyle.Secondary)
+            .setStyle(ButtonStyle.Secondary) // You can keep this as secondary or primary based on your design
     );
+    rows.push(drawCardRow); // Add draw card button row
 
-    await channel.send({ content: `${currentPlayer.name}, choose a card to play:`, components: [row] });
+    await channel.send({ content: `${currentPlayer.name}, choose a card to play:`, components: rows });
 }
