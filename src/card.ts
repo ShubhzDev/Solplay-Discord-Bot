@@ -1,4 +1,5 @@
 // card.ts
+import { Colors } from "discord.js";
 
 export interface Card {
     type: CardType;
@@ -28,9 +29,8 @@ export interface ActionCardInfo {
 }
 
 export interface WildCardInfo {
-    // number?: CardNumber;
+    color: CardColor;
     wildType: WildType;
-    color?: CardColor; // Make it optional for WildCards
 }
 
 export enum CardNumber {
@@ -51,6 +51,7 @@ export enum CardColor {
     Blue = "Blue",
     Green = "Green",
     Yellow = "Yellow",
+    Black = "Black",
 }
 
 export enum ActionType {
@@ -119,11 +120,11 @@ export function createDeck(): Card[] {
     for (let i = 0; i < 4; i++) {
         deck.push({
             type: CardType.WildCard,
-            info: { wildType: WildType.ColorChange },
+            info: { color: CardColor.Black,wildType: WildType.ColorChange },
         });
         deck.push({
             type: CardType.WildCard,
-            info: { wildType: WildType.PlusFourAndColorChange },
+            info: { color: CardColor.Black,wildType: WildType.PlusFourAndColorChange },
         });
     }
 
