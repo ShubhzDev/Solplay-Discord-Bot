@@ -1,12 +1,11 @@
-// src/commands.ts
 import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
   TextChannel,
-  GuildTextBasedChannel,
 } from "discord.js";
+
 import { dealCards, initializeGame, displayCurrentCard } from "./game"; // Import your game logic
 import { Player } from "./player"; // Import your player types
 import { GameState, showValidCards } from "./gameState"; // Import your game logic
@@ -19,13 +18,12 @@ import {
   WildCardInfo,
 } from "./card"; // Ensure CardType is imported
 
+export let gameState: GameState;
+
 /**
  * Handles the /uno command to start a game of Uno.
  * @param interaction The interaction object from Discord.
  */
-
-export let gameState: GameState;
-
 export async function handleUnoCommand(interaction: any) {
   const player1 = interaction.options.getUser("player1");
   const player2 = interaction.options.getUser("player2");
@@ -51,15 +49,14 @@ export async function handleUnoCommand(interaction: any) {
   dealCards(gameState, 7); // Deal 7 cards to each player
 
   const textChannel = interaction.channel as TextChannel;
+
   await interaction.reply(
     `Game started! Players: ${players.map((p) => p.name).join(", ")}`
   );
+
   displayCurrentCard(textChannel, gameState);
-  await displayCardButtons(
-    textChannel,
-    gameState,
-    players[gameState.currentPlayerIndex]
-  );
+  
+  await displayCardButtons(textChannel, gameState, players[gameState.currentPlayerIndex]);
 }
 
 /**
@@ -118,9 +115,7 @@ export async function displayCardButtons(
     }
 
     const isEnabled = validCards.includes(card); // Check if this card is valid to play
-
     addCardButton(cardId, label, isEnabled);
-    console.log("cardId : " + cardId);
   }
 
   // Push the last row if it has any buttons
@@ -128,115 +123,191 @@ export async function displayCardButtons(
     rows.push(currentRow);
   }
 
-  // Add draw card button (always enabled), in a new row if needed
-  const drawCardRow = new ActionRowBuilder<ButtonBuilder>();
-  drawCardRow.addComponents(
-    new ButtonBuilder()
-      .setCustomId("draw_card")
-      .setLabel("Draw Card")
-      .setStyle(ButtonStyle.Secondary) // You can keep this as secondary or primary based on your design
-  );
-  rows.push(drawCardRow); // Add draw card button row
+   // Add View Cards button (always enabled), in a new row
+   const viewCardsRow = new ActionRowBuilder<ButtonBuilder>();
+   viewCardsRow.addComponents(
+     new ButtonBuilder()
+       .setCustomId("view_cards")
+       .setLabel("View My Cards")
+       .setStyle(ButtonStyle.Primary)
+   );
 
-  const response = await channel.send({
-    content: `${currentPlayer.name}, choose a card to play:`,
-    components: rows,
-  });
+   rows.push(viewCardsRow); // Add view cards button row
 
-  const collector = response.createMessageComponentCollector({
-    componentType: ComponentType.Button,
-    time: 3_600_000,
-  });
+   // Add draw card button (always enabled), in a new row if needed
+   const drawCardRow = new ActionRowBuilder<ButtonBuilder>();
+   drawCardRow.addComponents(
+     new ButtonBuilder()
+       .setCustomId("draw_card")
+       .setLabel("Draw Card")
+       .setStyle(ButtonStyle.Secondary) 
+   );
 
-  collector.on("collect", async (interaction) => {
-    // console.log("Interaction received:", interaction);
+   rows.push(drawCardRow); // Add draw card button row
 
-    // Check if the interaction is a button
-    if (interaction.isButton()) {
-      const channel = interaction.channel;
+   const response = await channel.send({
+     content: `${currentPlayer.name}, choose a card to play or draw a card:`,
+     components: rows,
+   });
 
-      // Check if the channel is not null and is of type TextChannel
-      if (
-        channel &&
-        (channel instanceof TextChannel)
-      ) {
-        const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+   const collector = response.createMessageComponentCollector({
+     componentType: ComponentType.Button,
+     time: 3_600_000,
+   });
 
-        if (currentPlayer) {
-          await handleButtonInteraction(
-            interaction,
-            currentPlayer,
-            gameState,
-            channel // Now this is guaranteed to be a TextChannel or GuildTextBasedChannel
-          );
-        }
-      } else {
-        console.error("Interaction was not in a text channel.");
-        await interaction.reply({
-          content:
-            "This interaction cannot be processed because it's not in a text channel.",
-          ephemeral: true,
-        });
-      }
-    } else {
-      console.log("Interaction is not a button.");
-    }
-  });
+   collector.on("collect", async (interaction) => {
+     console.log("Interaction received:", interaction);
+
+     if (interaction.isButton()) {
+       const channel = interaction.channel;
+
+       if (
+         channel &&
+         (channel instanceof TextChannel)
+       ) {
+         const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+
+         if (currentPlayer) {
+           await handleButtonInteraction(
+             interaction,
+             currentPlayer,
+             gameState,
+             channel
+           );
+         }
+       } else {
+         console.error("Interaction was not in a text channel.");
+         await interaction.reply({
+           content:
+             "This interaction cannot be processed because it's not in a text channel.",
+           ephemeral: true,
+         });
+       }
+     } else {
+       console.log("Interaction is not a button.");
+     }
+   });
 }
 
+/**
+ * Handles button interactions for playing cards and drawing cards.
+ * @param interaction The interaction object from Discord.
+ * @param currentPlayer The player whose turn it is.
+ * @param gameState The current game state.
+ * @param channel The text channel where the interaction occurred.
+ */
 export async function handleButtonInteraction(
   interaction: any,
   currentPlayer: Player,
   gameState: GameState,
   channel: TextChannel
 ) {
-  // console.log("interaction.customId" + interaction.customId);
-  const [action, cardColor, cardValue] = interaction.customId.split("_");
+  
+const [action] = interaction.customId.split("_");
 
-  if (action === "play") {
-    const playedCard = currentPlayer.cards.find((card) => {
-      if (card.type === CardType.NumberCard) {
-        const numberInfo = card.info as NumberCardInfo; // Cast to NumberCardInfo
-        return (
-          numberInfo.color === cardColor &&
-          cardNumberToPrimitive(numberInfo.number) === parseInt(cardValue)
-        );
-      } else if (card.type === CardType.ActionCard) {
-        const actionInfo = card.info as ActionCardInfo; // Cast to ActionCardInfo
-        return (
-          actionInfo.color === cardColor && actionInfo.action === cardValue
-        );
-      } else if (card.type === CardType.WildCard) {
-        const wildInfo = card.info as WildCardInfo; // Cast to ActionCardInfo
-        return wildInfo.color === cardColor && wildInfo.wildType === cardValue;
-      }
-      return false;
-    });
+if (action === "view_cards") {
+   // Prepare message with player's cards
+   const playerCardsMessage = `${currentPlayer.name}, your cards are:\n` +
+     currentPlayer.cards.map(card => {
+       if (card.type === CardType.NumberCard) {
+         const numberInfo = card.info as NumberCardInfo;
+         return `${numberInfo.color} ${numberInfo.number}`;
+       } else if (card.type === CardType.ActionCard) {
+         const actionInfo = card.info as ActionCardInfo;
+         return `${actionInfo.color} ${actionInfo.action}`;
+       } else if (card.type === CardType.WildCard) {
+         const wildInfo = card.info as WildCardInfo;
+         return `${wildInfo.color} ${wildInfo.wildType}`;
+       }
+       return '';
+     }).join('\n');
 
-    if (playedCard) {
-      //make current card equivalent to player card
-      gameState.currentCard = playedCard;
-      currentPlayer.cards = currentPlayer.cards.filter(
-        (card) => card != playedCard
-      );
-      await interaction.reply({
-        content: `${currentPlayer.name} played: ${playedCard.info.color} ${
-          playedCard.type === CardType.NumberCard
-            ? (playedCard.info as NumberCardInfo).number
-            : playedCard.type === CardType.ActionCard
-            ? (playedCard.info as ActionCardInfo).action
-            : (playedCard.info as WildCardInfo).wildType // Handle wild card case if needed
-        }`,
-        ephemeral: false,
-      });
-    }
-
-    //remove that card from player list
-
-    //change turn of a player to another player
-  }
+   await interaction.reply({
+     content: playerCardsMessage,
+     ephemeral: true, 
+   });
+   
+   return; 
 }
 
+if (action === "draw_card") {
+   // Logic for drawing a card from the deck
+   const drawnCard = gameState.deck.pop(); // Remove the last card from the deck
+
+   if (drawnCard) {
+     currentPlayer.cards.push(drawnCard); // Add the drawn card to the player's hand
+
+     await interaction.reply({
+       content: `${currentPlayer.name} drew a card.`,
+       ephemeral: true, 
+     });
+
+     // Check for valid moves after drawing a card and update UI accordingly
+     await displayCardButtons(channel, gameState, currentPlayer);
+   } else {
+     await interaction.reply({
+       content: "No more cards left in the deck!",
+       ephemeral: true,
+     });
+   }
+
+   return; 
+}
+
+const [cardColor, cardValue] = action.split("_");
+
+if (action === "play") {
+   const playedCard = currentPlayer.cards.find((card) => {
+     if (card.type === CardType.NumberCard) {
+       const numberInfo = card.info as NumberCardInfo; 
+       return (
+         numberInfo.color === cardColor &&
+         cardNumberToPrimitive(numberInfo.number) === parseInt(cardValue)
+       );
+     } else if (card.type === CardType.ActionCard) {
+       const actionInfo = card.info as ActionCardInfo; 
+       return (
+         actionInfo.color === cardColor && actionInfo.action === cardValue
+       );
+     } else if (card.type === CardType.WildCard) {
+       const wildInfo = card.info as WildCardInfo; 
+       return wildInfo.color === cardColor && wildInfo.wildType === cardValue;
+     }
+     return false;
+   });
+
+   if (playedCard) {
+     gameState.currentCard = playedCard;
+     currentPlayer.cards = currentPlayer.cards.filter(
+       (card) => card != playedCard
+     );
+
+     await interaction.reply({
+       content: `${currentPlayer.name} played: ${playedCard.info.color} ${
+         playedCard.type === CardType.NumberCard
+           ? (playedCard.info as NumberCardInfo).number
+           : playedCard.type === CardType.ActionCard
+           ? (playedCard.info as ActionCardInfo).action
+           : (playedCard.info as WildCardInfo).wildType 
+       }`,
+       ephemeral: false, 
+     });
+
+     // Change turn to next player
+     gameState.currentPlayerIndex =
+       (gameState.currentPlayerIndex + 1) % gameState.players.length;
+
+     // Update the UI for the next player's turn
+     await displayCurrentCard(channel, gameState);
+     await displayCardButtons(channel, gameState, gameState.players[gameState.currentPlayerIndex]);
+   }
+}
+}
+
+/**
+ * Converts a CardNumber enum to a primitive number.
+ * @param cardNumber The CardNumber enum value.
+ */
 function cardNumberToPrimitive(cardNumber: CardNumber): number {
-  return parseInt(cardNumber); // Since enums in TypeScript are numbers by default, this works directly.
+ return parseInt(cardNumber); 
 }
