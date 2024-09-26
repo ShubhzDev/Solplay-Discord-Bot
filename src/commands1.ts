@@ -1,6 +1,6 @@
 import { Player } from "./player";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { GameState } from "./gameState";
+import { GameState, nextPlayer } from "./gameState";
 
 
 function SendUnoJoinInvitationToAllPlayers(){
@@ -19,7 +19,6 @@ function SendUnoJoinInvitationToAllPlayers(){
     const viewJoinBtn = new ActionRowBuilder<ButtonBuilder>();
     viewJoinBtn.addComponents(joinGame);
 }
-
 
 
 async function ShowDisplayButtons(interaction : any){
@@ -52,25 +51,53 @@ async function ShowDisplayButtons(interaction : any){
 
 }
 
+const rows :  ActionRowBuilder<ButtonBuilder>[] = [];
+let currentRow = new ActionRowBuilder<ButtonBuilder>();
+const addCardButton = (id:string,label:string,isEnabled:boolean) => {
+    currentRow.addComponents(
+        new ButtonBuilder()
+        .setCustomId(id)
+        .setLabel(label)
+        .setStyle(isEnabled ? ButtonStyle.Primary : ButtonStyle.Secondary)
+        .setDisabled(!isEnabled)
+    )
+
+   // Push the last row if it has any buttons
+    if (currentRow.components.length >= 5) {
+        rows.push(currentRow);
+        currentRow = new ActionRowBuilder<ButtonBuilder>();
+      }
+};
+
+
 function DisplayPlayerOwnCards(intercation : any,player : Player,gameState : GameState){
     const cardsLength = player.cards.length;
     const cards = player.cards;
     for (let index = 0; index < player.cards.length; index++) {
         const [color ,card , id ] = cards[index].split("_");
-        const element = new ButtonBuilder()
-        .setCustomId(cards[index].id)
-        .setLabel(color+card+id)
-        .setStyle(ButtonStyle.Primary);
+        const enabled : boolean = true;
+        addCardButton(cards[index].id,color+card,enabled);
     }
 }
 
-function ShowTurn(){
+function ChangeTurn(gameState : GameState){
+    nextPlayer(gameState);
+}
 
+function ShowTurn(){
     //show timer and turn banner
 
 }
 
+function OnButtonInteraction(player:Player,gameState:GameState){
+    //check if player turn
+    if(player === gameState.players[gameState.currentPlayerIndex]){ //should check player id or name from databse
+        
+    }
+}
 
-function AddPlayerToGame(){
-    //update game state   
+
+function AddPlayerToGame(player : Player,gameState : GameState){
+    //update game state
+    gameState.players.push(player);
 }
