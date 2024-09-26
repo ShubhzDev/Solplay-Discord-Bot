@@ -14,13 +14,13 @@ let gameState = initializeGame(players);
 console.log("Initial Game State:", gameState);
 
 // Update the current card and move to the next player
-const newCard: Card = {
-    type: CardType.ActionCard,
-    info: {
-        action: ActionType.Skip,
-        color: CardColor.Red,
-    },
-};
-updateCurrentCard(gameState, newCard);
-nextPlayer(gameState);
-console.log("Updated Game State:", gameState);
+// const newCard: Card = {
+//     type: CardType.ActionCard,
+//     info: {
+//         action: ActionType.Skip,
+//         color: CardColor.Red,
+//     },
+// };
+// updateCurrentCard(gameState, newCard);
+// nextPlayer(gameState);
+// console.log("Updated Game State:", gameState);

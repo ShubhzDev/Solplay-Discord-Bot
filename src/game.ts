@@ -16,6 +16,7 @@ export function initializeGame(players: Player[]): GameState {
             number: CardNumber.Zero,
             color: CardColor.Red,
         },
+        id: CardColor.Red+CardNumber.Zero,
     };
 
     // Create and shuffle the deck

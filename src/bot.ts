@@ -9,10 +9,9 @@ import {
   ComponentType,
 } from "discord.js";
 import {
-  handleUnoCommand,
-  handleButtonInteraction,
-  gameState,
-} from "./commands"; // Import the command handling function
+  SendUnoJoinInvitationToAllPlayers,HandleInteractions,gameState,
+  ShowDisplayButtons
+} from "./commands1"; // Import the command handling function
 import * as dotenv from "dotenv";
 
 dotenv.config(); // Load environment variables from .env file
@@ -30,20 +29,20 @@ const commands = [
   {
     name: "uno",
     description: "Start a game of Uno",
-    options: [
-      {
-        name: "player1",
-        description: "First player to join the game",
-        type: 6, // ApplicationCommandOptionType.User
-        required: true,
-      },
-      {
-        name: "player2",
-        description: "Second player to join the game",
-        type: 6, // ApplicationCommandOptionType.User
-        required: true,
-      },
-    ],
+    // options: [
+    //   {
+    //     name: "player1",
+    //     description: "First player to join the game",
+    //     type: 6, // ApplicationCommandOptionType.User
+    //     required: true,
+    //   },
+    //   {
+    //     name: "player2",
+    //     description: "Second player to join the game",
+    //     type: 6, // ApplicationCommandOptionType.User
+    //     required: true,
+    //   },
+    // ],
   },
 ];
 
@@ -75,33 +74,35 @@ if (process.env.DISCORD_BOT_TOKEN) {
   // Handle interactions
   client.on(Events.InteractionCreate, async (interaction: any) => {
     console.log("interaction " + interaction);
-    console.log("interaction " + interaction);
-    console.log("interaction " + interaction);
 
-    if (!interaction.isCommand()) return;
+    // if (!interaction.isCommand()) return;
 
     switch (interaction.commandName) {
       case "uno":
-        await handleUnoCommand(interaction);
+        SendUnoJoinInvitationToAllPlayers(interaction.channel);
         break;
+        case "join":
+          ShowDisplayButtons(interaction);
+          break;       
       default:
-        await interaction.reply({
-          content: "Unknown command.",
-          ephemeral: true,
-        });
+        // await interaction.reply({
+        //   content: "Unknown command.",
+        //   ephemeral: true,
+        // });
     }
 
-    // if (interaction.isButton()) {
-    //   console.log("interaction " + interaction);
-    //   if (gameState.players[gameState.currentPlayerIndex]) {
-    //     await handleButtonInteraction(
-    //       interaction,
-    //       gameState.players[gameState.currentPlayerIndex],
-    //       gameState,
-    //       interaction.channel
-    //     );
-    //   }
-    // }
+    if (interaction.isButton()) {
+      console.log("interaction.customId " + interaction.customId);
+      if (interaction.customId === "join") {
+        ShowDisplayButtons(interaction);
+
+      }
+      else if (interaction.customId === "view") {
+        ShowDisplayButtons(interaction);
+
+      }
+    }
+    
 
   });
 
@@ -110,3 +111,5 @@ if (process.env.DISCORD_BOT_TOKEN) {
 } else {
   console.error("DISCORD_BOT_TOKEN environment variable is not defined.");
 }
+
+

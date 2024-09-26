@@ -26,8 +26,9 @@ export function initializeGame(players: Player[]): GameState {
     type: CardType.NumberCard,
     info: {
       number: CardNumber.Zero,
-      color: CardColor.Red,
+      color: CardColor.Red
     },
+    id: CardColor.Red + CardNumber.Zero,
   };
 
   const deck = shuffleDeck(createDeck()); // Create and shuffle the deck
@@ -106,3 +107,4 @@ export function dealCards(gameState: GameState, numberOfCards: number): void {
     }
   }
 }
+

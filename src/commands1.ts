@@ -1,9 +1,20 @@
 import { Player } from "./player";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { GameState, nextPlayer } from "./gameState";
+import { TextChannel } from "discord.js";
 
+enum ButtonId{
+    Join = "join",
+    ViewCard = "viewCard",
+    Uno = "uno",
+    Leave = "leave",
+    Play = "play",
+    Draw = "draw",  
+}
 
-function SendUnoJoinInvitationToAllPlayers(){
+export let gameState: GameState;
+
+export async function SendUnoJoinInvitationToAllPlayers(channel:TextChannel){
 //send 4 buttons to channel
 //start
 //cancel
@@ -18,12 +29,21 @@ function SendUnoJoinInvitationToAllPlayers(){
 
     const viewJoinBtn = new ActionRowBuilder<ButtonBuilder>();
     viewJoinBtn.addComponents(joinGame);
+
+    const rows : ActionRowBuilder<ButtonBuilder>[] = [];
+    rows.push(viewJoinBtn);
+
+    await channel.send({
+        content:"Click a Button to Join Uno Game!!!",
+        components:rows,
+    })
 }
 
 
-async function ShowDisplayButtons(interaction : any){
+export async function ShowDisplayButtons(interaction : any){
     //join will send view ur cards/Uno/leave/end game
 
+    console.log("ShowDisplayButtons");
     const viewCard = new ButtonBuilder()
     .setCustomId("viewCard")
     .setLabel("View")
@@ -45,8 +65,8 @@ async function ShowDisplayButtons(interaction : any){
 
 
     await interaction.reply({
-        content:showDisplayButtons,
-        ethemeral:true,
+        components:[showDisplayButtons],
+        ephimeral:true,
     });
 
 }
@@ -70,14 +90,19 @@ const addCardButton = (id:string,label:string,isEnabled:boolean) => {
 };
 
 
-function DisplayPlayerOwnCards(intercation : any,player : Player,gameState : GameState){
+async function DisplayPlayerOwnCards(interaction : any,player : Player,gameState : GameState){
     const cardsLength = player.cards.length;
     const cards = player.cards;
     for (let index = 0; index < player.cards.length; index++) {
-        const [color ,card , id ] = cards[index].split("_");
+        const [color ,card , id ] = cards[index].id.split("_");
         const enabled : boolean = true;
-        addCardButton(cards[index].id,color+card,enabled);
+        addCardButton(cards[index].id,"play_"+color+card,enabled);
     }
+
+    await interaction.reply({
+        components:rows,
+        ephimeral:true,
+    });
 }
 
 function ChangeTurn(gameState : GameState){
@@ -100,4 +125,42 @@ function OnButtonInteraction(player:Player,gameState:GameState){
 function AddPlayerToGame(player : Player,gameState : GameState){
     //update game state
     gameState.players.push(player);
+}
+
+export function HandleInteractions(interaction : any,player : Player,gameState : GameState,channel:TextChannel){
+    const id = interaction.customId;
+    console.log("id "+id);
+    switch(id){
+        case ButtonId.Join:{
+            ShowDisplayButtons(interaction);
+        }
+        break;
+
+        case ButtonId.ViewCard:{
+            DisplayPlayerOwnCards(interaction,player,gameState);
+        }
+        break;
+
+        case ButtonId.Uno:{
+        }
+        break;
+
+        case ButtonId.Leave:{
+            //remove player from list
+        }
+        break;
+
+        case ButtonId.Play:{
+            //move game logic
+        }
+        break;
+
+        case ButtonId.Draw:{
+        }
+        break;
+
+        default:
+            console.log("came in default section");
+
+    }
 }
