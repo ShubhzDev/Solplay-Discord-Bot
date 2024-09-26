@@ -1,9 +1,11 @@
 // card.ts
 import { Colors } from "discord.js";
+import internal from "stream";
 
 export interface Card {
     type: CardType;
     info: CardInfo;
+    id : string;
 }
 
 export enum CardType {
@@ -68,7 +70,7 @@ export enum WildType {
 // Function to create a complete deck of Uno cards
 export function createDeck(): Card[] {
     const deck: Card[] = [];
-
+    let index: number = 0;
     // Add number cards (0-9)
     for (const color in CardColor) {
         // Ensure we are only dealing with the enum's string values
@@ -77,7 +79,9 @@ export function createDeck(): Card[] {
             deck.push({
                 type: CardType.NumberCard,
                 info: { number: CardNumber.Zero, color: CardColor[color as keyof typeof CardColor] },
+                id: color + "_" + CardNumber.Zero + "_" + index.toString(),
             });
+            index++;
 
             // Add two of each number card (1-9)
             for (const number of [CardNumber.One, CardNumber.Two, CardNumber.Three, CardNumber.Four, 
@@ -86,11 +90,15 @@ export function createDeck(): Card[] {
                 deck.push({
                     type: CardType.NumberCard,
                     info: { number, color: CardColor[color as keyof typeof CardColor] },
+                    id : color + "_" + number + "_" + index.toString(),
                 });
+                index++;
                 deck.push({
                     type: CardType.NumberCard,
                     info: { number, color: CardColor[color as keyof typeof CardColor] },
+                    id : color + "_" + number + "_" + index.toString(),
                 });
+                index++;
             }
         }
     }
@@ -106,11 +114,15 @@ export function createDeck(): Card[] {
                     deck.push({
                         type: CardType.ActionCard,
                         info: { action: ActionType[action as keyof typeof ActionType], color: CardColor[color as keyof typeof CardColor] },
+                        id : color + "_" + action + "_" + index.toString(),
                     });
+                    index++;
                     deck.push({
                         type: CardType.ActionCard,
                         info: { action: ActionType[action as keyof typeof ActionType], color: CardColor[color as keyof typeof CardColor] },
+                        id : color + "_" + action + "_" + index.toString(),
                     });
+                    index++;
                 }
             }
         }
@@ -121,11 +133,15 @@ export function createDeck(): Card[] {
         deck.push({
             type: CardType.WildCard,
             info: { color: CardColor.Black,wildType: WildType.ColorChange },
+            id : CardColor.Black + "_" + WildType.ColorChange + "_" + index.toString(),
         });
+        index++;
         deck.push({
             type: CardType.WildCard,
             info: { color: CardColor.Black,wildType: WildType.PlusFourAndColorChange },
+            id : CardColor.Black + "_" + WildType.PlusFourAndColorChange + "_" + index.toString(),
         });
+        index++
     }
 
     return deck;
