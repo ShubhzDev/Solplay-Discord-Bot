@@ -42,6 +42,22 @@ export function initializeGame(players: Player[]): GameState {
   };
 }
 
+//created player
+function createPlayer(id : string) : Player{
+  const player : Player = {
+    id : id,
+    name : id,
+    cards : [],
+  };
+  return player;
+}
+
+//added player
+function AddPlayer(id:string,gameState:GameState){
+  const player : Player = createPlayer(id);
+  gameState.players.push(player);
+}
+
 // Function to update the current card
 export function updateCurrentCard(gameState: GameState, newCard: Card): void {
   gameState.currentCard = newCard;

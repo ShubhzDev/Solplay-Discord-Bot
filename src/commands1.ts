@@ -69,6 +69,8 @@ export async function ShowDisplayButtons(interaction : any){
         ephimeral:true,
     });
 
+    AddPlayerToGame();
+
 }
 
 const rows :  ActionRowBuilder<ButtonBuilder>[] = [];

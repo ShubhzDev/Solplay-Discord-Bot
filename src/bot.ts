@@ -98,7 +98,7 @@ if (process.env.DISCORD_BOT_TOKEN) {
 
       }
       else if (interaction.customId === "view") {
-        ShowDisplayButtons(interaction);
+        DisplayPlayerOwnCards(interaction);
 
       }
     }
