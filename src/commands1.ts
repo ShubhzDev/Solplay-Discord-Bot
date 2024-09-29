@@ -1,7 +1,10 @@
 import { Player } from "./player";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { GameState, nextPlayer } from "./gameState";
+import { AddPlayer, GameState, nextPlayer } from "./gameState";
 import { TextChannel } from "discord.js";
+import { GameManager} from "./GameManager";
+
+export const manager = new GameManager();
 
 enum ButtonId{
     Join = "join",
@@ -69,8 +72,7 @@ export async function ShowDisplayButtons(interaction : any){
         ephimeral:true,
     });
 
-    AddPlayerToGame();
-
+    AddPlayer(interaction.id,interaction.name,"1111");
 }
 
 const rows :  ActionRowBuilder<ButtonBuilder>[] = [];

@@ -94,15 +94,20 @@ if (process.env.DISCORD_BOT_TOKEN) {
     if (interaction.isButton()) {
       console.log("interaction.customId " + interaction.customId);
       if (interaction.customId === "join") {
-        ShowDisplayButtons(interaction);
-
+        if(gameState.players.length == 2){
+            //start game
+            DisplayPlayerOwnCards(interaction,player,gameState);
+        }
+        else if(gameState.players.length < 2){
+          ShowDisplayButtons(interaction);
+        }
       }
       else if (interaction.customId === "view") {
-        DisplayPlayerOwnCards(interaction);
-
+      }
+      else if (interaction.customId === "view") {
+        // DisplayPlayerOwnCards(interaction);
       }
     }
-    
 
   });
 

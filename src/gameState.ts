@@ -1,5 +1,6 @@
 // src/gameState.ts
 
+import { TextChannel } from "discord.js";
 import {
   Card,
   createDeck,
@@ -10,6 +11,8 @@ import {
   ActionCardInfo,
   NumberCardInfo,
 } from "./card";
+import { gameState } from "./commands1";
+import { displayCurrentCard } from "./game";
 import { Player } from "./player";
 
 export interface GameState {
@@ -20,42 +23,66 @@ export interface GameState {
   deck: Card[]; // Add the deck to the game state
 }
 
-// Function to initialize the game state
-export function initializeGame(players: Player[]): GameState {
-  const initialCard: Card = {
-    type: CardType.NumberCard,
-    info: {
-      number: CardNumber.Zero,
-      color: CardColor.Red
-    },
-    id: CardColor.Red + CardNumber.Zero,
-  };
+import manager from "./commands1";
 
+// Function to initialize the game state
+// export function initializeGame(players: Player[]): GameState {
+//   const initialCard: Card = {
+//     type: CardType.NumberCard,
+//     info: {
+//       number: CardNumber.Zero,
+//       color: CardColor.Red
+//     },
+//     id: CardColor.Red + CardNumber.Zero,
+//   };
+
+//   const deck = shuffleDeck(createDeck()); // Create and shuffle the deck
+
+//   return {
+//     currentCard: initialCard,
+//     players: players,
+//     currentPlayerIndex: 0,
+//     direction: 1,
+//     deck: deck, // Initialize the deck in the game state
+//   };
+// }
+
+export function startGame(interaction: any, gameState: GameState) {
+  initializeGame(gameState.players, gameState);
+  dealCards(gameState, 7);
+  const textChannel = interaction.channel as TextChannel;
+  displayCurrentCard(textChannel, gameState);
+}
+
+export function initializeGame(players: Player[], gameState: GameState) {
   const deck = shuffleDeck(createDeck()); // Create and shuffle the deck
 
-  return {
-    currentCard: initialCard,
-    players: players,
-    currentPlayerIndex: 0,
-    direction: 1,
-    deck: deck, // Initialize the deck in the game state
-  };
+  const initialCard: Card | undefined = gameState.deck.pop();
+  dealCards(gameState, 7); // Deal 7 cards to each player
+
+  if (initialCard) {
+    (gameState.currentCard = initialCard), (gameState.players = players);
+    gameState.currentPlayerIndex = 0;
+  }
 }
 
 //created player
-function createPlayer(id : string) : Player{
-  const player : Player = {
-    id : id,
-    name : id,
-    cards : [],
+function createPlayer(playerId: string, playerName: string): Player {
+  const player: Player = {
+    id: playerId,
+    name: playerName,
+    cards: [],
   };
   return player;
 }
 
 //added player
-function AddPlayer(id:string,gameState:GameState){
-  const player : Player = createPlayer(id);
-  gameState.players.push(player);
+export function AddPlayer(
+  playerId: string,
+  playerName: string,
+  gameId: string
+) {
+  manager.addPlayer(playerId, playerName, gameId);
 }
 
 // Function to update the current card
@@ -123,4 +150,3 @@ export function dealCards(gameState: GameState, numberOfCards: number): void {
     }
   }
 }
-
