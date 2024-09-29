@@ -1,6 +1,7 @@
 import { Card, createDeck, shuffleDeck } from "./card";
 import { gameState } from "./commands1";
 import { AddPlayer, GameState } from "./gameState";
+import { Player } from "./player";
 
 export class GameManager {
   private gameStates: Map<string, GameState>;
@@ -26,7 +27,14 @@ export class GameManager {
   }
 
   addPlayer(playerId: string, playerName: string, gameId: string): void {
-    AddPlayer(playerId, playerName, this.getGameState(gameId));
+     const gameState : GameState | undefined = this.getGameState(gameId);
+     const player : Player = {
+      id: playerId,
+      name: playerName,
+      cards: [],
+     }
+     if(gameState)
+       gameState.players.push();
   }
 
   getGameState(gameId: string): GameState | undefined {

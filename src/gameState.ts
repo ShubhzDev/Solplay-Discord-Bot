@@ -23,7 +23,7 @@ export interface GameState {
   deck: Card[]; // Add the deck to the game state
 }
 
-import manager from "./commands1";
+import {manager} from "./commands1";
 
 // Function to initialize the game state
 // export function initializeGame(players: Player[]): GameState {
@@ -51,7 +51,7 @@ export function startGame(interaction: any, gameState: GameState) {
   initializeGame(gameState.players, gameState);
   dealCards(gameState, 7);
   const textChannel = interaction.channel as TextChannel;
-  displayCurrentCard(textChannel, gameState);
+  // displayCurrentCard(textChannel, gameState);
 }
 
 export function initializeGame(players: Player[], gameState: GameState) {

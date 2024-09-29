@@ -9,8 +9,10 @@ import {
   ComponentType,
 } from "discord.js";
 import {
-  SendUnoJoinInvitationToAllPlayers,HandleInteractions,gameState,
-  ShowDisplayButtons
+  SendUnoJoinInvitationToAllPlayers,
+  HandleInteractions,
+  gameState,
+  ShowDisplayButtons,
 } from "./commands1"; // Import the command handling function
 import * as dotenv from "dotenv";
 
@@ -81,34 +83,31 @@ if (process.env.DISCORD_BOT_TOKEN) {
       case "uno":
         SendUnoJoinInvitationToAllPlayers(interaction.channel);
         break;
-        case "join":
-          ShowDisplayButtons(interaction);
-          break;       
+      case "join":
+        ShowDisplayButtons(interaction);
+        break;
       default:
-        // await interaction.reply({
-        //   content: "Unknown command.",
-        //   ephemeral: true,
-        // });
+      // await interaction.reply({
+      //   content: "Unknown command.",
+      //   ephemeral: true,
+      // });
     }
 
     if (interaction.isButton()) {
       console.log("interaction.customId " + interaction.customId);
-      if (interaction.customId === "join") {
-        if(gameState.players.length == 2){
-            //start game
-            DisplayPlayerOwnCards(interaction,player,gameState);
-        }
-        else if(gameState.players.length < 2){
-          ShowDisplayButtons(interaction);
-        }
-      }
-      else if (interaction.customId === "view") {
-      }
-      else if (interaction.customId === "view") {
-        // DisplayPlayerOwnCards(interaction);
-      }
+      // if (interaction.customId === "join") {
+      //   if (gameState.players.length == 2) {
+      //     //start game
+      //     DisplayPlayerOwnCards(interaction, player, gameState);
+      //   } else if (gameState.players.length < 2) {
+      //     ShowDisplayButtons(interaction);
+      //   }
+      // } else if (interaction.customId === "view") {
+      // } else if (interaction.customId === "view") {
+      //   // DisplayPlayerOwnCards(interaction);
+      // }
+      HandleInteractions(interaction,interaction.channel);
     }
-
   });
 
   // Start the bot
@@ -116,5 +115,3 @@ if (process.env.DISCORD_BOT_TOKEN) {
 } else {
   console.error("DISCORD_BOT_TOKEN environment variable is not defined.");
 }
-
-
