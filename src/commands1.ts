@@ -72,7 +72,7 @@ export async function ShowDisplayButtons(interaction: any) {
     ephimeral: true,
   });
 
-  AddPlayer(interaction.id, interaction.name, "1111");
+  AddPlayer(interaction.id, interaction.name, "game1");
 }
 
 const rows: ActionRowBuilder<ButtonBuilder>[] = [];
@@ -95,20 +95,20 @@ const addCardButton = (id: string, label: string, isEnabled: boolean) => {
 
 async function DisplayPlayerOwnCards(
   interaction: any,
-  player: Player,
-  gameState: GameState
+  player: Player
 ) {
   const cardsLength = player.cards.length;
+  console.log("cardsLength ",cardsLength);
   const cards = player.cards;
-  for (let index = 0; index < player.cards.length; index++) {
+  for (let index = 0; index < cardsLength; index++) {
     const [color, card, id] = cards[index].id.split("_");
     const enabled: boolean = true;
-    addCardButton(cards[index].id, "play_" + color + card, enabled);
+    addCardButton("play_" + cards[index].id,color + card, enabled);
   }
 
   await interaction.reply({
     components: rows,
-    ephimeral: true,
+    ephemeral: true,
   });
 }
 
@@ -132,37 +132,51 @@ function AddPlayerToGame(player: Player, gameState: GameState) {
   gameState.players.push(player);
 }
 
-export function HandleInteractions(interaction: any, channel: TextChannel) {
+export async function HandleInteractions(interaction: any, channel: TextChannel) {
   const id = interaction.customId;
+  const userId = interaction.user.id;
+  const userName = interaction.user.username;
+  const gameState : GameState | undefined = manager.getGameState("game1");
+
   console.log("id " + id);
   switch (id) {
     case ButtonId.Join:
       {
-        if (gameState.players.length == 2) {
-          //start game
-          const userId = interaction.user.id;
-          const userName = interaction.user.username;
-          const { player, gameState } = getPlayerfromId(userId, "");
-          if (player && gameState) {
-            startGame(interaction,gameState);
+        if (gameState) {
+          // console.log("gameState.players.length ",gameState.players.length);
+          manager.addPlayer(userId, userName, "game1");
+          await channel.send(`${userName} has joined game`);
+          // interaction.reply(`${userName} has joined game`);
+
+          if (gameState.players.length == 2 && !gameState.isActive) {
+            gameState.isActive = true;
+            console.log("gameState.players.length ",gameState.players.length);
+            startGame(interaction, gameState);
+            ShowDisplayButtons(interaction);
           }
-        } else if (gameState.players.length < 2) {
-          const userId = interaction.user.id;
-          const userName = interaction.user.username; 
+          // else if (gameState.players.length < 2) {
+          //   console.log("gameState.players.length");
+          //   manager.createGame("game1");
+          //   manager.addPlayer(userId, userName, "game1");
+          //   interaction.reply(`${userName} has joined game`);
+          //   // ShowDisplayButtons(interaction);
+          // }
+        }
+        else{
+          console.log("else");
           manager.createGame("game1");
           manager.addPlayer(userId, userName, "game1");
-          ShowDisplayButtons(interaction);
+          interaction.reply(`${userName} has joined game`);
+          // ShowDisplayButtons(interaction);
         }
       }
       break;
 
     case ButtonId.ViewCard:
-      {
-        const userId = interaction.user.id;
-        const userName = interaction.user.username;
-        const { player, gameState } = getPlayerfromId(userId, "");
+      {  
+        const { player , gameState } = getPlayerfromId(userId,"game1");
         if (player && gameState) {
-            DisplayPlayerOwnCards(interaction, player, gameState);
+          DisplayPlayerOwnCards(interaction, player);
         }
       }
       break;
@@ -200,7 +214,9 @@ function getPlayerfromId(
 ): { player: Player | undefined; gameState: GameState | undefined } {
   const gameState: GameState | undefined = manager.getGameState(gameId);
   if (gameState) {
+    // console.log("gameState.players.length "+ gameState.players.length);
     for (let i = 0; i < gameState.players.length; i++) {
+      console.log(`${gameState.players[i].name} player...`);
       if (playerId === gameState.players[i].id) {
         return { player: gameState.players[i], gameState }; // Return as an object
       }

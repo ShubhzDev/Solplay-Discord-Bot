@@ -21,6 +21,7 @@ export interface GameState {
   currentPlayerIndex: number;
   direction: number; // 1 for clockwise, -1 for counter-clockwise
   deck: Card[]; // Add the deck to the game state
+  isActive : boolean,
 }
 
 import {manager} from "./commands1";

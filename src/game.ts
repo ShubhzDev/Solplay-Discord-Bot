@@ -28,6 +28,7 @@ export function initializeGame(players: Player[]): GameState {
         currentPlayerIndex: 0,
         direction: 1, // Start with clockwise direction
         deck: deck, // Include the deck in the game state
+        isActive : false,
     };
 }
 

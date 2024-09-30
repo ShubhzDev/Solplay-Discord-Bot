@@ -10,8 +10,8 @@ const players: Player[] = [
     { id: '2', name: 'Bob', cards: [] },
 ];
 
-let gameState = initializeGame(players);
-console.log("Initial Game State:", gameState);
+// let gameState = initializeGame(players);
+// console.log("Initial Game State:", gameState);
 
 // Update the current card and move to the next player
 // const newCard: Card = {
