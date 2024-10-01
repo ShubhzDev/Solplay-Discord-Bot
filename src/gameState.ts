@@ -49,10 +49,10 @@ import {manager} from "./commands1";
 // }
 
 export function startGame(interaction: any, gameState: GameState) {
-  initializeGame(gameState.players, gameState);
+  // initializeGame(gameState.players, gameState);
   dealCards(gameState, 7);
   const textChannel = interaction.channel as TextChannel;
-  // displayCurrentCard(textChannel, gameState);
+  displayCurrentCard(textChannel, gameState);
 }
 
 export function initializeGame(players: Player[], gameState: GameState) {
@@ -142,7 +142,8 @@ export function showValidCards(gameState: GameState, cards: Card[]): Card[] {
 // Function to deal cards to players
 export function dealCards(gameState: GameState, numberOfCards: number): void {
   // Deal cards to each player
-  for (const player of gameState.players) {
+  for (const player of gameState.players){
+    console.log("Dealing Cards to Player : ",player.name);
     for (let i = 0; i < numberOfCards; i++) {
       const card = gameState.deck.pop(); // Get the last card from the deck
       if (card) {

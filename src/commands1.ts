@@ -3,6 +3,14 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { AddPlayer, GameState, nextPlayer, startGame } from "./gameState";
 import { TextChannel } from "discord.js";
 import { GameManager } from "./GameManager";
+import {
+  ActionCardInfo,
+  CardNumber,
+  CardType,
+  NumberCardInfo,
+  WildCardInfo,
+} from "./card";
+import { displayCurrentCard } from "./game";
 
 export const manager = new GameManager();
 
@@ -72,11 +80,11 @@ export async function ShowDisplayButtons(interaction: any) {
     ephimeral: true,
   });
 
-  AddPlayer(interaction.id, interaction.name, "game1");
+  // AddPlayer(interaction.id, interaction.name, "game1");
 }
 
-const rows: ActionRowBuilder<ButtonBuilder>[] = [];
-let currentRow = new ActionRowBuilder<ButtonBuilder>();
+let rows: ActionRowBuilder<ButtonBuilder>[];
+let currentRow: ActionRowBuilder<ButtonBuilder>;
 const addCardButton = (id: string, label: string, isEnabled: boolean) => {
   currentRow.addComponents(
     new ButtonBuilder()
@@ -88,22 +96,31 @@ const addCardButton = (id: string, label: string, isEnabled: boolean) => {
 
   // Push the last row if it has any buttons
   if (currentRow.components.length >= 5) {
+    console.log("currentRow.components.length ", currentRow.components.length);
     rows.push(currentRow);
     currentRow = new ActionRowBuilder<ButtonBuilder>();
   }
 };
 
-async function DisplayPlayerOwnCards(
-  interaction: any,
-  player: Player
-) {
+async function DisplayPlayerOwnCards(interaction: any, player: Player) {
   const cardsLength = player.cards.length;
-  console.log("cardsLength ",cardsLength);
+  console.log("cardsLength ", cardsLength);
   const cards = player.cards;
+  rows = [];
+  currentRow = new ActionRowBuilder<ButtonBuilder>();
   for (let index = 0; index < cardsLength; index++) {
     const [color, card, id] = cards[index].id.split("_");
     const enabled: boolean = true;
-    addCardButton("play_" + cards[index].id,color + card, enabled);
+    addCardButton("play_" + cards[index].id, color + card, enabled);
+  }
+
+  // After adding all cards, check and push any remaining buttons
+  if (currentRow.components.length > 0) {
+    console.log(
+      "Pushing final currentRow with length: ",
+      currentRow.components.length
+    );
+    rows.push(currentRow);
   }
 
   await interaction.reply({
@@ -132,11 +149,14 @@ function AddPlayerToGame(player: Player, gameState: GameState) {
   gameState.players.push(player);
 }
 
-export async function HandleInteractions(interaction: any, channel: TextChannel) {
-  const id = interaction.customId;
+export async function HandleInteractions(
+  interaction: any,
+  channel: TextChannel
+) {
+  const [id,cardColor, cardValue] = interaction.customId.split("_");
   const userId = interaction.user.id;
   const userName = interaction.user.username;
-  const gameState : GameState | undefined = manager.getGameState("game1");
+  const gameState: GameState | undefined = manager.getGameState("game1");
 
   console.log("id " + id);
   switch (id) {
@@ -150,7 +170,7 @@ export async function HandleInteractions(interaction: any, channel: TextChannel)
 
           if (gameState.players.length == 2 && !gameState.isActive) {
             gameState.isActive = true;
-            console.log("gameState.players.length ",gameState.players.length);
+            console.log("gameState.players.length ", gameState.players.length);
             startGame(interaction, gameState);
             ShowDisplayButtons(interaction);
           }
@@ -161,8 +181,7 @@ export async function HandleInteractions(interaction: any, channel: TextChannel)
           //   interaction.reply(`${userName} has joined game`);
           //   // ShowDisplayButtons(interaction);
           // }
-        }
-        else{
+        } else {
           console.log("else");
           manager.createGame("game1");
           manager.addPlayer(userId, userName, "game1");
@@ -173,8 +192,8 @@ export async function HandleInteractions(interaction: any, channel: TextChannel)
       break;
 
     case ButtonId.ViewCard:
-      {  
-        const { player , gameState } = getPlayerfromId(userId,"game1");
+      {
+        const { player, gameState } = getPlayerfromId(userId, "game1");
         if (player && gameState) {
           DisplayPlayerOwnCards(interaction, player);
         }
@@ -194,7 +213,15 @@ export async function HandleInteractions(interaction: any, channel: TextChannel)
 
     case ButtonId.Play:
       {
-        //move game logic
+        const { player, gameState } = getPlayerfromId(userId, "game1");
+        if (player && gameState) {
+          // const [cardColor, cardValue] = interaction.customId.split("_");
+          //move game logic
+          await PlayCardLogic( interaction,cardColor, cardValue, gameState);
+          // Update the UI for the next player's turn
+          displayCurrentCard(channel, gameState);
+          DisplayPlayerOwnCards(interaction, player);
+        }
       }
       break;
 
@@ -223,4 +250,50 @@ function getPlayerfromId(
     }
   }
   return { player: undefined, gameState }; // Return as an object
+}
+
+async function PlayCardLogic(
+  interaction: any,
+  cardColor: string,
+  cardValue: string,
+  gameState: GameState
+) {
+  const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+  const textChannel = interaction.channel as TextChannel;
+
+  const playedCard = currentPlayer.cards.find((card) => {
+    if (card.type === CardType.NumberCard) {
+      const numberInfo = card.info as NumberCardInfo;
+      return (
+        numberInfo.color === cardColor &&
+        cardNumberToPrimitive(numberInfo.number) === parseInt(cardValue)
+      );
+    } else if (card.type === CardType.ActionCard) {
+      const actionInfo = card.info as ActionCardInfo;
+      return actionInfo.color === cardColor && actionInfo.action === cardValue;
+    } else if (card.type === CardType.WildCard) {
+      const wildInfo = card.info as WildCardInfo;
+      return wildInfo.color === cardColor && wildInfo.wildType === cardValue;
+    }
+    return false;
+  });
+
+  if (playedCard) {
+    gameState.currentCard = playedCard;
+    currentPlayer.cards = currentPlayer.cards.filter(
+      (card) => card != playedCard
+    );
+
+    // Change turn to next player
+    gameState.currentPlayerIndex =
+      (gameState.currentPlayerIndex + 1) % gameState.players.length;
+  }
+}
+
+/**
+ * Converts a CardNumber enum to a primitive number.
+ * @param cardNumber The CardNumber enum value.
+ */
+function cardNumberToPrimitive(cardNumber: CardNumber): number {
+  return parseInt(cardNumber);
 }
