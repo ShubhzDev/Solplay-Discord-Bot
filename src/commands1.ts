@@ -69,10 +69,16 @@ export async function ShowDisplayButtons(interaction: any) {
     .setLabel("Leave")
     .setStyle(ButtonStyle.Primary);
 
+  const draw = new ButtonBuilder()
+    .setCustomId("draw")
+    .setLabel("Draw")
+    .setStyle(ButtonStyle.Primary);
+
   let showDisplayButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
     viewCard,
     uno,
-    leave
+    leave,
+    draw
   );
 
   await interaction.reply({
@@ -153,7 +159,7 @@ export async function HandleInteractions(
   interaction: any,
   channel: TextChannel
 ) {
-  const [id,cardColor, cardValue] = interaction.customId.split("_");
+  const [id, cardColor, cardValue] = interaction.customId.split("_");
   const userId = interaction.user.id;
   const userName = interaction.user.username;
   const gameState: GameState | undefined = manager.getGameState("game1");
@@ -217,7 +223,7 @@ export async function HandleInteractions(
         if (player && gameState) {
           // const [cardColor, cardValue] = interaction.customId.split("_");
           //move game logic
-          await PlayCardLogic( interaction,cardColor, cardValue, gameState);
+          await PlayCardLogic(interaction, cardColor, cardValue, gameState);
           // Update the UI for the next player's turn
           displayCurrentCard(channel, gameState);
           DisplayPlayerOwnCards(interaction, player);
@@ -227,6 +233,11 @@ export async function HandleInteractions(
 
     case ButtonId.Draw:
       {
+        const { player, gameState } = getPlayerfromId(userId, "game1");
+        if (player && gameState) {
+          DrawCardLogic(interaction, cardColor, cardValue, gameState);
+          DisplayPlayerOwnCards(interaction, player);
+        }
       }
       break;
 
@@ -287,6 +298,20 @@ async function PlayCardLogic(
     // Change turn to next player
     gameState.currentPlayerIndex =
       (gameState.currentPlayerIndex + 1) % gameState.players.length;
+  }
+}
+
+function DrawCardLogic(
+  interaction: any,
+  cardColor: string,
+  cardValue: string,
+  gameState: GameState
+) {
+  const drawnCard = gameState.deck.pop();
+  const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+
+  if (drawnCard) {
+    currentPlayer.cards.push(drawnCard);
   }
 }
 
