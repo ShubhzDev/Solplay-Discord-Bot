@@ -1,5 +1,5 @@
 import { Player } from "./player";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from "discord.js";
 import { AddPlayer, GameState, nextPlayer, startGame } from "./gameState";
 import { TextChannel } from "discord.js";
 import { GameManager } from "./GameManager";
@@ -11,6 +11,7 @@ import {
   WildCardInfo,
 } from "./card";
 import { displayCurrentCard } from "./game";
+import { channel } from "diagnostics_channel";
 
 export const manager = new GameManager();
 
@@ -25,7 +26,7 @@ enum ButtonId {
 
 export let gameState: GameState;
 
-export async function SendUnoJoinInvitationToAllPlayers(channel: TextChannel) {
+export async function SendUnoJoinInvitationToAllPlayers(interaction: any) {
   //send 4 buttons to channel
   //start
   //cancel
@@ -41,13 +42,14 @@ export async function SendUnoJoinInvitationToAllPlayers(channel: TextChannel) {
   const viewJoinBtn = new ActionRowBuilder<ButtonBuilder>();
   viewJoinBtn.addComponents(joinGame);
 
-  const rows: ActionRowBuilder<ButtonBuilder>[] = [];
-  rows.push(viewJoinBtn);
+  // const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+  // rows.push(viewJoinBtn);
 
-  await channel.send({
-    content: "Click a Button to Join Uno Game!!!",
-    components: rows,
-  });
+  EmbeddedBuilder(interaction.user.username,interaction.channel,viewJoinBtn);
+  // await channel.send({
+  //   content: "Click a Button to Join Uno Game!!!",
+  //   components: rows,
+  // });
 }
 
 export async function ShowDisplayButtons(interaction: any) {
@@ -169,6 +171,18 @@ export async function HandleInteractions(
     case ButtonId.Join:
       {
         if (gameState) {
+
+          const joinedBtn = new ButtonBuilder()
+          .setCustomId("joined")
+          .setLabel("Joined")
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true);
+
+          const row = new ActionRowBuilder<ButtonBuilder>();
+          row.addComponents(joinedBtn);
+
+          await message.edit({components:[row]});
+
           // console.log("gameState.players.length ",gameState.players.length);
           manager.addPlayer(userId, userName, "game1");
           await channel.send(`${userName} has joined game`);
@@ -179,14 +193,8 @@ export async function HandleInteractions(
             console.log("gameState.players.length ", gameState.players.length);
             startGame(interaction, gameState);
             ShowDisplayButtons(interaction);
+            // EmbeddedBuilder(interaction.channel);
           }
-          // else if (gameState.players.length < 2) {
-          //   console.log("gameState.players.length");
-          //   manager.createGame("game1");
-          //   manager.addPlayer(userId, userName, "game1");
-          //   interaction.reply(`${userName} has joined game`);
-          //   // ShowDisplayButtons(interaction);
-          // }
         } else {
           console.log("else");
           manager.createGame("game1");
@@ -296,9 +304,9 @@ async function PlayCardLogic(
     );
 
     // Change turn to next player
-    gameState.currentPlayerIndex =
-      (gameState.currentPlayerIndex + 1) % gameState.players.length;
+    gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
   }
+
 }
 
 function DrawCardLogic(
@@ -321,4 +329,10 @@ function DrawCardLogic(
  */
 function cardNumberToPrimitive(cardNumber: CardNumber): number {
   return parseInt(cardNumber);
+}
+
+let message : any;
+async function EmbeddedBuilder(playerName : string,channel : TextChannel,rows : any){
+  const embedded = new EmbedBuilder().setTitle("UNO").setDescription(playerName + " has started a game of UNO! Click the button below to join!");
+  message = await channel.send({embeds : [embedded],components : [rows]});
 }

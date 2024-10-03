@@ -81,7 +81,7 @@ if (process.env.DISCORD_BOT_TOKEN) {
 
     switch (interaction.commandName) {
       case "uno":
-        SendUnoJoinInvitationToAllPlayers(interaction.channel);
+        SendUnoJoinInvitationToAllPlayers(interaction);
         break;
       case "join":
         ShowDisplayButtons(interaction);
