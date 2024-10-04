@@ -1,5 +1,10 @@
 import { Player } from "./player";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from "discord.js";
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder,
+} from "discord.js";
 import { AddPlayer, GameState, nextPlayer, startGame } from "./gameState";
 import { TextChannel } from "discord.js";
 import { GameManager } from "./GameManager";
@@ -45,14 +50,14 @@ export async function SendUnoJoinInvitationToAllPlayers(interaction: any) {
   // const rows: ActionRowBuilder<ButtonBuilder>[] = [];
   // rows.push(viewJoinBtn);
 
-  EmbeddedBuilder(interaction.user.username,interaction.channel,viewJoinBtn);
+  EmbeddedBuilder(interaction.user.username, interaction.channel, viewJoinBtn);
   // await channel.send({
   //   content: "Click a Button to Join Uno Game!!!",
   //   components: rows,
   // });
 }
 
-export async function ShowDisplayButtons(interaction: any) {
+export async function ShowDisplayButtons(interaction: any,player : Player,gameState : GameState) {
   //join will send view ur cards/Uno/leave/end game
 
   console.log("ShowDisplayButtons");
@@ -83,9 +88,11 @@ export async function ShowDisplayButtons(interaction: any) {
     draw
   );
 
-  await interaction.reply({
+  TurnUpdate(interaction,player.name,gameState);
+
+  await interaction.editReply({
     components: [showDisplayButtons],
-    ephimeral: true,
+    ephemeral: true,
   });
 
   // AddPlayer(interaction.id, interaction.name, "game1");
@@ -164,43 +171,41 @@ export async function HandleInteractions(
   const [id, cardColor, cardValue] = interaction.customId.split("_");
   const userId = interaction.user.id;
   const userName = interaction.user.username;
-  const gameState: GameState | undefined = manager.getGameState("game1");
+  let gameState: GameState | undefined = manager.getGameState("game1");
 
   console.log("id " + id);
   switch (id) {
     case ButtonId.Join:
       {
         if (gameState) {
-
-          const joinedBtn = new ButtonBuilder()
-          .setCustomId("joined")
-          .setLabel("Joined")
-          .setStyle(ButtonStyle.Secondary)
-          .setDisabled(true);
-
-          const row = new ActionRowBuilder<ButtonBuilder>();
-          row.addComponents(joinedBtn);
-
-          await message.edit({components:[row]});
-
           // console.log("gameState.players.length ",gameState.players.length);
           manager.addPlayer(userId, userName, "game1");
-          await channel.send(`${userName} has joined game`);
-          // interaction.reply(`${userName} has joined game`);
+          // await channel.send(`${userName} has joined game`);
+          interaction.editReply({content : `you have joined uno successfully!` , ephemeral : true});
 
           if (gameState.players.length == 2 && !gameState.isActive) {
             gameState.isActive = true;
             console.log("gameState.players.length ", gameState.players.length);
             startGame(interaction, gameState);
-            ShowDisplayButtons(interaction);
+            const { player } = getPlayerfromId(userId, "game1");
+            if(player){
+              ShowDisplayButtons(interaction,player,gameState);
+            }
             // EmbeddedBuilder(interaction.channel);
           }
         } else {
           console.log("else");
           manager.createGame("game1");
           manager.addPlayer(userId, userName, "game1");
-          interaction.reply(`${userName} has joined game`);
+          interaction.editReply({content : `you have joined uno successfully!` , ephemeral : true});
           // ShowDisplayButtons(interaction);
+        }
+
+        // Re-fetch the game state after adding the player
+        gameState = manager.getGameState("game1"); // Re-fetching the updated game state
+        const { player } = getPlayerfromId(userId, "game1");
+        if (player && gameState && !gameState.isActive) {
+          Joined(interaction, gameState, player, channel);
         }
       }
       break;
@@ -304,9 +309,9 @@ async function PlayCardLogic(
     );
 
     // Change turn to next player
-    gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+    gameState.currentPlayerIndex =
+      (gameState.currentPlayerIndex + 1) % gameState.players.length;
   }
-
 }
 
 function DrawCardLogic(
@@ -331,8 +336,68 @@ function cardNumberToPrimitive(cardNumber: CardNumber): number {
   return parseInt(cardNumber);
 }
 
-let message : any;
-async function EmbeddedBuilder(playerName : string,channel : TextChannel,rows : any){
-  const embedded = new EmbedBuilder().setTitle("UNO").setDescription(playerName + " has started a game of UNO! Click the button below to join!");
-  message = await channel.send({embeds : [embedded],components : [rows]});
+let message: any;
+let description: string = "";
+let lastDescription: string = "";
+async function EmbeddedBuilder(
+  playerName: string,
+  channel: TextChannel,
+  rows: any
+) {
+  lastDescription +=
+    playerName +
+    " has started a game of UNO! Click the button below to join!\n\n";
+
+  const embedded = new EmbedBuilder()
+    .setColor(0x0099ff)
+    .setTitle("UNO")
+    .setDescription(lastDescription);
+  message = await channel.send({ embeds: [embedded], components: [rows] });
+}
+
+async function Joined(
+  interaction: any,
+  gameState: GameState,
+  player: Player,
+  channel: TextChannel
+) {
+  let playerList: string = "";
+  for (let i = 0; i < gameState.players.length; i++) {
+    playerList += gameState.players[i].name + "\n";
+  }
+  description = playerList;
+
+  description += "\n" + player.name + " has just Joined!\n\n";
+  const embedded = new EmbedBuilder()
+    .setColor(0x0099ff)
+    .setTitle("UNO")
+    .setDescription(lastDescription + description);
+
+  message.edit({ embeds: [embedded] });
+}
+
+function TurnUpdate(
+  interaction: any,
+  turnPlayer: string,
+  gameState: GameState
+) {
+  const turn = turnPlayer + "'s Turn \n\n";
+  const turnMsg = "It's " + turnPlayer + "'s turn" + "\n\n";
+
+  let playerListAndCards: string = "Players\n";
+  for (let index = 0; index < gameState.players.length; index++) {
+    playerListAndCards +=
+      gameState.players[index].name +
+      " - " +
+      gameState.players[index].cards.length + " cards" +
+      "\n";
+  }
+
+  const embedded = new EmbedBuilder()
+    .setColor(0x0099ff)
+    .setTitle("UNO")
+    .setDescription(turn + turnMsg + playerListAndCards);
+
+    // console.log("turn + turnMsg + playerListAndCards",turn + turnMsg + playerListAndCards);
+  message.edit({ embeds: [embedded] });
 }

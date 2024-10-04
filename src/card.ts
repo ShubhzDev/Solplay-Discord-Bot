@@ -155,3 +155,19 @@ export function shuffleDeck(deck: Card[]): Card[] {
     }
     return deck;
 }
+
+let cardName : string = "";
+const baseUrl : string = "./images/";
+function getCardImg(card : Card) {
+    if(card.type === CardType.NumberCard){
+        const cardInfo : card.info as CardInfo.NumberCardInfo;
+        cardName = cardInfo.color + cardInfo.number;
+        return baseUrl + cardName;
+    }
+    else if(card.type === CardType.ActionCard){
+
+    }
+    else if(card.type === CardType.WildCard){
+
+    }
+}

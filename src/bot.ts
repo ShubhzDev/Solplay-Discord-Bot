@@ -83,9 +83,9 @@ if (process.env.DISCORD_BOT_TOKEN) {
       case "uno":
         SendUnoJoinInvitationToAllPlayers(interaction);
         break;
-      case "join":
-        ShowDisplayButtons(interaction);
-        break;
+      // case "join":
+      //   ShowDisplayButtons(interaction);
+      //   break;
       default:
       // await interaction.reply({
       //   content: "Unknown command.",
@@ -94,6 +94,7 @@ if (process.env.DISCORD_BOT_TOKEN) {
     }
 
     if (interaction.isButton()) {
+      await interaction.deferReply();
       console.log("interaction.customId " + interaction.customId);
       // if (interaction.customId === "join") {
       //   if (gameState.players.length == 2) {
