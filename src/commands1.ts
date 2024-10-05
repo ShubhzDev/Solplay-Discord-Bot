@@ -1,6 +1,7 @@
 import { Player } from "./player";
 import {
   ActionRowBuilder,
+  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
@@ -12,6 +13,7 @@ import {
   ActionCardInfo,
   CardNumber,
   CardType,
+  getCardImg,
   NumberCardInfo,
   WildCardInfo,
 } from "./card";
@@ -57,7 +59,11 @@ export async function SendUnoJoinInvitationToAllPlayers(interaction: any) {
   // });
 }
 
-export async function ShowDisplayButtons(interaction: any,player : Player,gameState : GameState) {
+export async function ShowDisplayButtons(
+  interaction: any,
+  player: Player,
+  gameState: GameState
+) {
   //join will send view ur cards/Uno/leave/end game
 
   console.log("ShowDisplayButtons");
@@ -88,7 +94,7 @@ export async function ShowDisplayButtons(interaction: any,player : Player,gameSt
     draw
   );
 
-  TurnUpdate(interaction,player.name,gameState);
+  TurnUpdate(interaction, player.name, gameState);
 
   await interaction.editReply({
     components: [showDisplayButtons],
@@ -181,15 +187,18 @@ export async function HandleInteractions(
           // console.log("gameState.players.length ",gameState.players.length);
           manager.addPlayer(userId, userName, "game1");
           // await channel.send(`${userName} has joined game`);
-          interaction.editReply({content : `you have joined uno successfully!` , ephemeral : true});
+          interaction.editReply({
+            content: `you have joined uno successfully!`,
+            ephemeral: true,
+          });
 
           if (gameState.players.length == 2 && !gameState.isActive) {
             gameState.isActive = true;
             console.log("gameState.players.length ", gameState.players.length);
             startGame(interaction, gameState);
             const { player } = getPlayerfromId(userId, "game1");
-            if(player){
-              ShowDisplayButtons(interaction,player,gameState);
+            if (player) {
+              ShowDisplayButtons(interaction, player, gameState);
             }
             // EmbeddedBuilder(interaction.channel);
           }
@@ -197,7 +206,10 @@ export async function HandleInteractions(
           console.log("else");
           manager.createGame("game1");
           manager.addPlayer(userId, userName, "game1");
-          interaction.editReply({content : `you have joined uno successfully!` , ephemeral : true});
+          interaction.editReply({
+            content: `you have joined uno successfully!`,
+            ephemeral: true,
+          });
           // ShowDisplayButtons(interaction);
         }
 
@@ -238,7 +250,7 @@ export async function HandleInteractions(
           //move game logic
           await PlayCardLogic(interaction, cardColor, cardValue, gameState);
           // Update the UI for the next player's turn
-          displayCurrentCard(channel, gameState);
+          // displayCurrentCard(channel, gameState);
           DisplayPlayerOwnCards(interaction, player);
         }
       }
@@ -389,15 +401,34 @@ function TurnUpdate(
     playerListAndCards +=
       gameState.players[index].name +
       " - " +
-      gameState.players[index].cards.length + " cards" +
+      gameState.players[index].cards.length +
+      " cards" +
       "\n";
   }
 
-  const embedded = new EmbedBuilder()
-    .setColor(0x0099ff)
-    .setTitle("UNO")
-    .setDescription(turn + turnMsg + playerListAndCards);
+  const url: string | undefined = "https://raw.githubusercontent.com/WilliamWelsh/UNO/main/images/" + getCardImg(gameState.currentCard);
 
-    // console.log("turn + turnMsg + playerListAndCards",turn + turnMsg + playerListAndCards);
-  message.edit({ embeds: [embedded] });
+  console.log("url", url);
+
+  if (url) {
+    // const attachment = new AttachmentBuilder(url);
+
+    const embedded = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle('Some title')
+      .setURL('https://discord.js.org/')
+      .setAuthor({ name: 'Some name', iconURL: 'https://i.imgur.com/AfFp7pu.png', url: 'https://discord.js.org' })
+      .setDescription(turn + turnMsg + playerListAndCards)
+      .setAuthor({ name: 'Some name', iconURL: 'https://i.imgur.com/AfFp7pu.png', url: 'https://discord.js.org' })
+      .setThumbnail(`${url}`)
+      .addFields(
+        { name: 'Card 1', value: 'Description for Yellow 2', inline: true },
+        { name: 'Card 2', value: 'Description for Red 3', inline: true }
+    )     
+    //  .setImage(`attachment://${url}`);
+
+    message.edit({ embeds: [embedded] });
+  }
+
+  // console.log("turn + turnMsg + playerListAndCards",turn + turnMsg + playerListAndCards);
 }

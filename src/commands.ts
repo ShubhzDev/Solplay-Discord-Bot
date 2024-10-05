@@ -81,7 +81,7 @@ export async function handleUnoCommand(interaction: any) {
     });
   }
 
-  displayCurrentCard(textChannel, gameState);
+  // displayCurrentCard(textChannel, gameState);
 
   await displayCardButtons(
     interaction,

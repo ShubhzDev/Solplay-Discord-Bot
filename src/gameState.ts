@@ -52,7 +52,7 @@ export function startGame(interaction: any, gameState: GameState) {
   // initializeGame(gameState.players, gameState);
   dealCards(gameState, 7);
   const textChannel = interaction.channel as TextChannel;
-  displayCurrentCard(textChannel, gameState);
+  // displayCurrentCard(textChannel, gameState);
 }
 
 export function initializeGame(players: Player[], gameState: GameState) {
