@@ -4,6 +4,7 @@ import {
   AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
+  Component,
   EmbedBuilder,
 } from "discord.js";
 import { AddPlayer, GameState, nextPlayer, startGame } from "./gameState";
@@ -52,7 +53,12 @@ export async function SendUnoJoinInvitationToAllPlayers(interaction: any) {
   // const rows: ActionRowBuilder<ButtonBuilder>[] = [];
   // rows.push(viewJoinBtn);
 
-  EmbeddedBuilder(interaction,interaction.user.username, interaction.channel, viewJoinBtn);
+  EmbeddedBuilder(
+    interaction,
+    interaction.user.username,
+    interaction.channel,
+    viewJoinBtn
+  );
   // await channel.send({
   //   content: "Click a Button to Join Uno Game!!!",
   //   components: rows,
@@ -94,7 +100,11 @@ export async function ShowDisplayButtons(
     draw
   );
 
-  TurnUpdate(interaction, player.name, gameState);
+  TurnUpdate(
+    interaction,
+    gameState.players[gameState.currentPlayerIndex],
+    gameState
+  );
 
   await interaction.reply({
     components: [showDisplayButtons],
@@ -143,8 +153,37 @@ async function DisplayPlayerOwnCards(interaction: any, player: Player) {
     );
     rows.push(currentRow);
   }
+  // msgInteraction = interaction;
 
-  await interaction.reply({
+  msgInteraction = await interaction.reply({
+    components: rows,
+    ephemeral: true,
+  });
+}
+
+async function DisplayPlayerOwnCardsEdit(interaction: any, player: Player) {
+  const cardsLength = player.cards.length;
+  console.log("cardsLength ", cardsLength);
+  const cards = player.cards;
+  rows = [];
+  currentRow = new ActionRowBuilder<ButtonBuilder>();
+  for (let index = 0; index < cardsLength; index++) {
+    const [color, card, id] = cards[index].id.split("_");
+    const enabled: boolean = true;
+    addCardButton("play_" + cards[index].id, color + card, enabled);
+  }
+
+  // After adding all cards, check and push any remaining buttons
+  if (currentRow.components.length > 0) {
+    console.log(
+      "Pushing final currentRow with length: ",
+      currentRow.components.length
+    );
+    rows.push(currentRow);
+  }
+  // await interaction.deferReply({ ephemeral: true });
+
+  await interaction.update({
     components: rows,
     ephemeral: true,
   });
@@ -170,6 +209,8 @@ function AddPlayerToGame(player: Player, gameState: GameState) {
   gameState.players.push(player);
 }
 
+let msgInteraction: any;
+
 export async function HandleInteractions(
   interaction: any,
   channel: TextChannel
@@ -188,7 +229,6 @@ export async function HandleInteractions(
           manager.addPlayer(userId, userName, "game1");
           // await channel.send(`${userName} has joined game`);
 
-
           if (gameState.players.length == 2 && !gameState.isActive) {
             gameState.isActive = true;
             console.log("gameState.players.length ", gameState.players.length);
@@ -196,12 +236,11 @@ export async function HandleInteractions(
             const { player } = getPlayerfromId(userId, "game1");
             if (player) {
               ShowDisplayButtons(interaction, player, gameState);
-            }
-            else{
-              interaction.reply({
-                content: `you have joined uno successfully!`,
-                ephemeral: true,
-              });
+              // TurnUpdate(
+              //   interaction,
+              //   gameState.players[gameState.currentPlayerIndex],
+              //   gameState
+              // );
             }
             // EmbeddedBuilder(interaction.channel);
           }
@@ -254,7 +293,7 @@ export async function HandleInteractions(
           await PlayCardLogic(interaction, cardColor, cardValue, gameState);
           // Update the UI for the next player's turn
           // displayCurrentCard(channel, gameState);
-          DisplayPlayerOwnCards(interaction, player);
+          DisplayPlayerOwnCardsEdit(interaction, player);
         }
       }
       break;
@@ -264,7 +303,7 @@ export async function HandleInteractions(
         const { player, gameState } = getPlayerfromId(userId, "game1");
         if (player && gameState) {
           DrawCardLogic(interaction, cardColor, cardValue, gameState);
-          DisplayPlayerOwnCards(interaction, player);
+          DisplayPlayerOwnCardsEdit(interaction, player);
         }
       }
       break;
@@ -326,6 +365,12 @@ async function PlayCardLogic(
     // Change turn to next player
     gameState.currentPlayerIndex =
       (gameState.currentPlayerIndex + 1) % gameState.players.length;
+
+    TurnUpdate(
+      interaction,
+      gameState.players[gameState.currentPlayerIndex],
+      gameState
+    );
   }
 }
 
@@ -355,7 +400,7 @@ let message: any;
 let description: string = "";
 let lastDescription: string = "";
 async function EmbeddedBuilder(
-  interaction : any,
+  interaction: any,
   playerName: string,
   channel: TextChannel,
   rows: any
@@ -392,15 +437,15 @@ async function Joined(
   message.edit({ embeds: [embedded] });
 }
 
-function TurnUpdate(
+async function TurnUpdate(
   interaction: any,
-  turnPlayer: string,
+  turnPlayer: Player,
   gameState: GameState
 ) {
-  const turn = turnPlayer + "'s Turn \n\n";
-  const turnMsg = "It's " + turnPlayer + "'s turn" + "\n\n";
+  const turn = turnPlayer.name + "'s Turn";
+  const turnMsg = "It's " + turnPlayer.name + "'s turn";
 
-  let playerListAndCards: string = "Players\n";
+  let playerListAndCards: string = "";
   for (let index = 0; index < gameState.players.length; index++) {
     playerListAndCards +=
       gameState.players[index].name +
@@ -410,29 +455,29 @@ function TurnUpdate(
       "\n";
   }
 
-  const url: string | undefined = "https://raw.githubusercontent.com/WilliamWelsh/UNO/main/images/" + getCardImg(gameState.currentCard);
+  const url: string | undefined =
+    "https://raw.githubusercontent.com/WilliamWelsh/UNO/main/images/" +
+    getCardImg(gameState.currentCard);
 
   console.log("url", url);
+  const targetUser = await interaction.guild.members
+    .fetch(turnPlayer.id)
+    .catch(console.error);
 
-  if (url) {
-    // const attachment = new AttachmentBuilder(url);
-
+  if (url && targetUser) {
     const embedded = new EmbedBuilder()
       .setColor(0x0099ff)
-      .setTitle('Some title')
-      .setURL('https://discord.js.org/')
-      .setAuthor({ name: 'Some name', iconURL: 'https://i.imgur.com/AfFp7pu.png', url: 'https://discord.js.org' })
-      .setDescription(turn + turnMsg + playerListAndCards)
-      .setAuthor({ name: 'Some name', iconURL: 'https://i.imgur.com/AfFp7pu.png', url: 'https://discord.js.org' })
-      .setThumbnail(`${url}`)
+      .setAuthor({
+        name: turn,
+        iconURL: targetUser.displayAvatarURL({ dynamic: true }),
+      })
       .addFields(
-        { name: 'Card 1', value: 'Description for Yellow 2', inline: true },
-        { name: 'Card 2', value: 'Description for Red 3', inline: true }
-    )     
-    //  .setImage(`attachment://${url}`);
+        { name: "\u200B", value: turnMsg, inline: false }, // Using zero-width space for empty fields
+        { name: "Press the view card button below to view your cards.",value: "\u200B", inline: false},
+        { name: "Players",value: playerListAndCards || "\u200B",inline: true}//, // Fallback to zero-width space if `playerListAndCards` is empty
+      )
+      .setThumbnail(`${url}`);
 
-    message.edit({ embeds: [embedded] });
+    await message.edit({ embeds: [embedded] ,components : []});
   }
-
-  // console.log("turn + turnMsg + playerListAndCards",turn + turnMsg + playerListAndCards);
 }
