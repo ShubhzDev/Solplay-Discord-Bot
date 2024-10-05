@@ -94,7 +94,6 @@ if (process.env.DISCORD_BOT_TOKEN) {
     }
 
     if (interaction.isButton()) {
-      await interaction.deferReply();
       console.log("interaction.customId " + interaction.customId);
       // if (interaction.customId === "join") {
       //   if (gameState.players.length == 2) {

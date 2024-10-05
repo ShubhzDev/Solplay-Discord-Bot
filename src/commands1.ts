@@ -52,7 +52,7 @@ export async function SendUnoJoinInvitationToAllPlayers(interaction: any) {
   // const rows: ActionRowBuilder<ButtonBuilder>[] = [];
   // rows.push(viewJoinBtn);
 
-  EmbeddedBuilder(interaction.user.username, interaction.channel, viewJoinBtn);
+  EmbeddedBuilder(interaction,interaction.user.username, interaction.channel, viewJoinBtn);
   // await channel.send({
   //   content: "Click a Button to Join Uno Game!!!",
   //   components: rows,
@@ -96,7 +96,7 @@ export async function ShowDisplayButtons(
 
   TurnUpdate(interaction, player.name, gameState);
 
-  await interaction.editReply({
+  await interaction.reply({
     components: [showDisplayButtons],
     ephemeral: true,
   });
@@ -187,10 +187,7 @@ export async function HandleInteractions(
           // console.log("gameState.players.length ",gameState.players.length);
           manager.addPlayer(userId, userName, "game1");
           // await channel.send(`${userName} has joined game`);
-          interaction.editReply({
-            content: `you have joined uno successfully!`,
-            ephemeral: true,
-          });
+
 
           if (gameState.players.length == 2 && !gameState.isActive) {
             gameState.isActive = true;
@@ -200,17 +197,23 @@ export async function HandleInteractions(
             if (player) {
               ShowDisplayButtons(interaction, player, gameState);
             }
+            else{
+              interaction.reply({
+                content: `you have joined uno successfully!`,
+                ephemeral: true,
+              });
+            }
             // EmbeddedBuilder(interaction.channel);
           }
         } else {
           console.log("else");
           manager.createGame("game1");
           manager.addPlayer(userId, userName, "game1");
-          interaction.editReply({
-            content: `you have joined uno successfully!`,
-            ephemeral: true,
-          });
-          // ShowDisplayButtons(interaction);
+          gameState = manager.getGameState("game1");
+          const { player } = getPlayerfromId(userId, "game1");
+          if (player && gameState) {
+            ShowDisplayButtons(interaction, player, gameState);
+          }
         }
 
         // Re-fetch the game state after adding the player
@@ -352,6 +355,7 @@ let message: any;
 let description: string = "";
 let lastDescription: string = "";
 async function EmbeddedBuilder(
+  interaction : any,
   playerName: string,
   channel: TextChannel,
   rows: any
