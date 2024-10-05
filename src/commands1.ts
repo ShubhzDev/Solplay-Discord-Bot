@@ -67,7 +67,6 @@ export async function SendUnoJoinInvitationToAllPlayers(interaction: any) {
 
 export async function ShowDisplayButtons(
   interaction: any,
-  player: Player,
   gameState: GameState
 ) {
   //join will send view ur cards/Uno/leave/end game
@@ -93,6 +92,8 @@ export async function ShowDisplayButtons(
     .setLabel("Draw")
     .setStyle(ButtonStyle.Primary);
 
+
+
   let showDisplayButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
     viewCard,
     uno,
@@ -106,10 +107,72 @@ export async function ShowDisplayButtons(
     gameState
   );
 
-  await interaction.reply({
+  msgInteraction = await interaction.reply({
     components: [showDisplayButtons],
     ephemeral: true,
   });
+
+  // AddPlayer(interaction.id, interaction.name, "game1");
+}
+
+export async function ShowDisplayButtonsAddPass(
+  interaction: any,
+  gameState: GameState,
+  addPass : boolean
+) {
+  //join will send view ur cards/Uno/leave/end game
+
+  console.log("ShowDisplayButtons");
+  const viewCard = new ButtonBuilder()
+    .setCustomId("viewCard")
+    .setLabel("View")
+    .setStyle(ButtonStyle.Primary);
+
+  const uno = new ButtonBuilder()
+    .setCustomId("uno")
+    .setLabel("!Uno")
+    .setStyle(ButtonStyle.Primary);
+
+  const leave = new ButtonBuilder()
+    .setCustomId("leave")
+    .setLabel("Leave")
+    .setStyle(ButtonStyle.Primary);
+
+  const draw = new ButtonBuilder()
+    .setCustomId("draw")
+    .setLabel("Draw")
+    .setStyle(ButtonStyle.Primary);
+
+
+
+  let showDisplayButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    viewCard,
+    uno,
+    leave,
+    draw
+  );
+
+  let pass : any;
+  if(addPass){
+    pass = new ButtonBuilder()
+    .setCustomId("pass")
+    .setLabel("Pass")
+    .setStyle(ButtonStyle.Primary);
+showDisplayButtons.addComponents(pass);
+  }
+
+  await interaction.update({
+    components: [showDisplayButtons],
+    ephemeral: true,
+  });
+
+  TurnUpdate(
+    interaction,
+    gameState.players[gameState.currentPlayerIndex],
+    gameState
+  );
+
+
 
   // AddPlayer(interaction.id, interaction.name, "game1");
 }
@@ -155,7 +218,7 @@ async function DisplayPlayerOwnCards(interaction: any, player: Player) {
   }
   // msgInteraction = interaction;
 
-  msgInteraction = await interaction.reply({
+  await interaction.reply({
     components: rows,
     ephemeral: true,
   });
@@ -235,7 +298,7 @@ export async function HandleInteractions(
             startGame(interaction, gameState);
             const { player } = getPlayerfromId(userId, "game1");
             if (player) {
-              ShowDisplayButtons(interaction, player, gameState);
+              ShowDisplayButtons(interaction, gameState);
               // TurnUpdate(
               //   interaction,
               //   gameState.players[gameState.currentPlayerIndex],
@@ -251,7 +314,7 @@ export async function HandleInteractions(
           gameState = manager.getGameState("game1");
           const { player } = getPlayerfromId(userId, "game1");
           if (player && gameState) {
-            ShowDisplayButtons(interaction, player, gameState);
+            ShowDisplayButtons(interaction, gameState);
           }
         }
 
@@ -386,6 +449,9 @@ function DrawCardLogic(
   if (drawnCard) {
     currentPlayer.cards.push(drawnCard);
   }
+
+  ShowDisplayButtonsAddPass(interaction, gameState,true);
+
 }
 
 /**
@@ -455,7 +521,7 @@ async function TurnUpdate(
       "\n";
   }
 
-  const url: string | undefined =
+  let url: string | undefined =
     "https://raw.githubusercontent.com/WilliamWelsh/UNO/main/images/" +
     getCardImg(gameState.currentCard);
 
@@ -463,6 +529,10 @@ async function TurnUpdate(
   const targetUser = await interaction.guild.members
     .fetch(turnPlayer.id)
     .catch(console.error);
+
+    if(!gameState.isActive){
+      url = "";
+    }
 
   if (url && targetUser) {
     const embedded = new EmbedBuilder()
