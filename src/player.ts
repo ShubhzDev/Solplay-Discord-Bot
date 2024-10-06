@@ -6,6 +6,7 @@ export interface Player {
     id: string;
     name: string;
     cards: Card[];
+    interaction : any,
 }
 
 // Function to add a card to a player

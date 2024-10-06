@@ -49,6 +49,7 @@ import {manager} from "./commands1";
 // }
 
 export function startGame(interaction: any, gameState: GameState) {
+  console.log("started game......");
   // initializeGame(gameState.players, gameState);
   dealCards(gameState, 7);
   const textChannel = interaction.channel as TextChannel;
@@ -73,6 +74,7 @@ function createPlayer(playerId: string, playerName: string): Player {
     id: playerId,
     name: playerName,
     cards: [],
+    interaction:null,
   };
   return player;
 }

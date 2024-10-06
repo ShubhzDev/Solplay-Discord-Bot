@@ -5,10 +5,10 @@ import { GameState, initializeGame, updateCurrentCard, nextPlayer } from './game
 import { Player } from './player';
 
 // Example usage of the game logic
-const players: Player[] = [
-    { id: '1', name: 'Alice', cards: [] },
-    { id: '2', name: 'Bob', cards: [] },
-];
+// const players: Player[] = [
+//     { id: '1', name: 'Alice', cards: [] },
+//     { id: '2', name: 'Bob', cards: [] },
+// ];
 
 // let gameState = initializeGame(players);
 // console.log("Initial Game State:", gameState);

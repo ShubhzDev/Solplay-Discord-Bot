@@ -229,7 +229,8 @@ async function DisplayPlayerOwnCards(
   }
   // msgInteraction = interaction;
 
-  await interaction.reply({
+  // player.interaction = interaction;
+  player.interaction = await interaction.reply({
     components: rows,
     ephemeral: true,
   });
@@ -269,10 +270,19 @@ async function DisplayPlayerOwnCardsEdit(
   }
   // await interaction.deferReply({ ephemeral: true });
 
-  await interaction.update({
-    components: rows,
-    ephemeral: true,
-  });
+  // if (player.id === gameState.players[gameState.currentPlayerIndex].id) {
+  //   await interaction.update({
+  //     components: rows,
+  //     ephemeral: true,
+  //   });
+  // } 
+
+  // await interaction.deferReply({ ephemeral: true });
+
+    await player.interaction.edit({
+      components: rows,
+      ephemeral: true,
+    });
 }
 
 // Function to update valid cards for all players in the game
@@ -344,13 +354,7 @@ export async function HandleInteractions(
             const { player } = getPlayerfromId(userId, "game1");
             if (player) {
               ShowDisplayButtons(interaction, gameState);
-              // TurnUpdate(
-              //   interaction,
-              //   gameState.players[gameState.currentPlayerIndex],
-              //   gameState
-              // );
-            }
-            // EmbeddedBuilder(interaction.channel);
+             }
           }
         } else {
           console.log("else");

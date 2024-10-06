@@ -39,6 +39,7 @@ export class GameManager {
       id: playerId,
       name: playerName,
       cards: [],
+      interaction:null,
     };
     if (gameState) {
       gameState.players.push(player);
