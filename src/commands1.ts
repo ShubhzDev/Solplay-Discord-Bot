@@ -7,7 +7,13 @@ import {
   Component,
   EmbedBuilder,
 } from "discord.js";
-import { AddPlayer, GameState, nextPlayer, startGame } from "./gameState";
+import {
+  AddPlayer,
+  GameState,
+  nextPlayer,
+  showValidCards,
+  startGame,
+} from "./gameState";
 import { TextChannel } from "discord.js";
 import { GameManager } from "./GameManager";
 import {
@@ -92,8 +98,6 @@ export async function ShowDisplayButtons(
     .setLabel("Draw")
     .setStyle(ButtonStyle.Primary);
 
-
-
   let showDisplayButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
     viewCard,
     uno,
@@ -118,7 +122,7 @@ export async function ShowDisplayButtons(
 export async function ShowDisplayButtonsAddPass(
   interaction: any,
   gameState: GameState,
-  addPass : boolean
+  addPass: boolean
 ) {
   //join will send view ur cards/Uno/leave/end game
 
@@ -143,8 +147,6 @@ export async function ShowDisplayButtonsAddPass(
     .setLabel("Draw")
     .setStyle(ButtonStyle.Primary);
 
-
-
   let showDisplayButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
     viewCard,
     uno,
@@ -152,13 +154,13 @@ export async function ShowDisplayButtonsAddPass(
     draw
   );
 
-  let pass : any;
-  if(addPass){
+  let pass: any;
+  if (addPass) {
     pass = new ButtonBuilder()
-    .setCustomId("pass")
-    .setLabel("Pass")
-    .setStyle(ButtonStyle.Primary);
-showDisplayButtons.addComponents(pass);
+      .setCustomId("pass")
+      .setLabel("Pass")
+      .setStyle(ButtonStyle.Primary);
+    showDisplayButtons.addComponents(pass);
   }
 
   await interaction.update({
@@ -171,8 +173,6 @@ showDisplayButtons.addComponents(pass);
     gameState.players[gameState.currentPlayerIndex],
     gameState
   );
-
-
 
   // AddPlayer(interaction.id, interaction.name, "game1");
 }
@@ -196,16 +196,27 @@ const addCardButton = (id: string, label: string, isEnabled: boolean) => {
   }
 };
 
-async function DisplayPlayerOwnCards(interaction: any, player: Player) {
+async function DisplayPlayerOwnCards(
+  interaction: any,
+  player: Player,
+  gameState: GameState
+) {
   const cardsLength = player.cards.length;
   console.log("cardsLength ", cardsLength);
   const cards = player.cards;
   rows = [];
+
   currentRow = new ActionRowBuilder<ButtonBuilder>();
+  console.log("gameState.currentCard.type : ", gameState.currentCard);
+
+  const validCards = showValidCards(gameState, cards);
+
   for (let index = 0; index < cardsLength; index++) {
+    console.log("cards[index].type : ", cards[index].type);
     const [color, card, id] = cards[index].id.split("_");
     const enabled: boolean = true;
-    addCardButton("play_" + cards[index].id, color + card, enabled);
+    const isEnabled = validCards.includes(cards[index]);
+    addCardButton("play_" + cards[index].id, color + card, isEnabled);
   }
 
   // After adding all cards, check and push any remaining buttons
@@ -224,16 +235,28 @@ async function DisplayPlayerOwnCards(interaction: any, player: Player) {
   });
 }
 
-async function DisplayPlayerOwnCardsEdit(interaction: any, player: Player) {
+async function DisplayPlayerOwnCardsEdit(
+  interaction: any,
+  player: Player,
+  gameState: GameState
+) {
   const cardsLength = player.cards.length;
   console.log("cardsLength ", cardsLength);
   const cards = player.cards;
   rows = [];
   currentRow = new ActionRowBuilder<ButtonBuilder>();
+  console.log("gameState.currentCard.type : ", gameState.currentCard);
+
+  const validCards = showValidCards(gameState, player.cards);
+  for (let index = 0; index < validCards.length; index++) {
+    console.log("==-", validCards[index]);
+  }
+
   for (let index = 0; index < cardsLength; index++) {
     const [color, card, id] = cards[index].id.split("_");
     const enabled: boolean = true;
-    addCardButton("play_" + cards[index].id, color + card, enabled);
+    const isEnabled = validCards.includes(cards[index]);
+    addCardButton("play_" + cards[index].id, color + card, isEnabled);
   }
 
   // After adding all cards, check and push any remaining buttons
@@ -250,6 +273,28 @@ async function DisplayPlayerOwnCardsEdit(interaction: any, player: Player) {
     components: rows,
     ephemeral: true,
   });
+}
+
+// Function to update valid cards for all players in the game
+async function updateAllPlayersValidCards(
+  interaction: any,
+  gameState: GameState
+) {
+  const players = gameState.players; // Assuming you have a list of players in gameState
+
+  // Loop through each player and update their valid cards
+  for (let i = 0; i < players.length; i++) {
+    const player = players[i];
+
+    // Determine valid cards for the current player
+    const validCards = showValidCards(gameState, player.cards);
+
+    // Log the valid cards for debugging
+    console.log(`Valid cards for ${player.name}:`, validCards);
+
+    // Now call the function to update the player's interaction
+    await DisplayPlayerOwnCardsEdit(interaction, player, gameState);
+  }
 }
 
 function ChangeTurn(gameState: GameState) {
@@ -331,7 +376,7 @@ export async function HandleInteractions(
       {
         const { player, gameState } = getPlayerfromId(userId, "game1");
         if (player && gameState) {
-          DisplayPlayerOwnCards(interaction, player);
+          DisplayPlayerOwnCards(interaction, player, gameState);
         }
       }
       break;
@@ -356,7 +401,7 @@ export async function HandleInteractions(
           await PlayCardLogic(interaction, cardColor, cardValue, gameState);
           // Update the UI for the next player's turn
           // displayCurrentCard(channel, gameState);
-          DisplayPlayerOwnCardsEdit(interaction, player);
+          updateAllPlayersValidCards(interaction, gameState);
         }
       }
       break;
@@ -366,7 +411,7 @@ export async function HandleInteractions(
         const { player, gameState } = getPlayerfromId(userId, "game1");
         if (player && gameState) {
           DrawCardLogic(interaction, cardColor, cardValue, gameState);
-          DisplayPlayerOwnCardsEdit(interaction, player);
+          updateAllPlayersValidCards(interaction, gameState);
         }
       }
       break;
@@ -450,8 +495,7 @@ function DrawCardLogic(
     currentPlayer.cards.push(drawnCard);
   }
 
-  ShowDisplayButtonsAddPass(interaction, gameState,true);
-
+  ShowDisplayButtonsAddPass(interaction, gameState, true);
 }
 
 /**
@@ -530,9 +574,9 @@ async function TurnUpdate(
     .fetch(turnPlayer.id)
     .catch(console.error);
 
-    if(!gameState.isActive){
-      url = "";
-    }
+  if (!gameState.isActive) {
+    url = "";
+  }
 
   if (url && targetUser) {
     const embedded = new EmbedBuilder()
@@ -543,11 +587,15 @@ async function TurnUpdate(
       })
       .addFields(
         { name: "\u200B", value: turnMsg, inline: false }, // Using zero-width space for empty fields
-        { name: "Press the view card button below to view your cards.",value: "\u200B", inline: false},
-        { name: "Players",value: playerListAndCards || "\u200B",inline: true}//, // Fallback to zero-width space if `playerListAndCards` is empty
+        {
+          name: "Press the view card button below to view your cards.",
+          value: "\u200B",
+          inline: false,
+        },
+        { name: "Players", value: playerListAndCards || "\u200B", inline: true } //, // Fallback to zero-width space if `playerListAndCards` is empty
       )
       .setThumbnail(`${url}`);
 
-    await message.edit({ embeds: [embedded] ,components : []});
+    await message.edit({ embeds: [embedded], components: [] });
   }
 }
