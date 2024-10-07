@@ -275,14 +275,14 @@ async function DisplayPlayerOwnCardsEdit(
   //     components: rows,
   //     ephemeral: true,
   //   });
-  // } 
+  // }
 
   // await interaction.deferReply({ ephemeral: true });
 
-    await player.interaction.edit({
-      components: rows,
-      ephemeral: true,
-    });
+  await player.interaction.edit({
+    components: rows,
+    ephemeral: true,
+  });
 }
 
 // Function to update valid cards for all players in the game
@@ -354,7 +354,7 @@ export async function HandleInteractions(
             const { player } = getPlayerfromId(userId, "game1");
             if (player) {
               ShowDisplayButtons(interaction, gameState);
-             }
+            }
           }
         } else {
           console.log("else");
@@ -556,6 +556,8 @@ async function TurnUpdate(
   turnPlayer: Player,
   gameState: GameState
 ) {
+  clearTimeout(turnTimer);
+
   const turn = turnPlayer.name + "'s Turn";
   const turnMsg = "It's " + turnPlayer.name + "'s turn";
 
@@ -602,4 +604,27 @@ async function TurnUpdate(
 
     await message.edit({ embeds: [embedded], components: [] });
   }
+
+  StartTimer(interaction,gameState);
+}
+let turnTimer : any; // Variable to store the timer ID
+
+function StartTimer(interaction: any, gameState: GameState) {
+  // Clear the existing timer if it is already running
+  if (turnTimer) {
+    clearTimeout(turnTimer);
+  }
+
+  // Start a new 30-second timer for the player's turn
+  turnTimer = setTimeout(() => {
+    // Move to the next player
+    nextPlayer(gameState);
+
+    console.log("Next player: ", gameState.players[gameState.currentPlayerIndex].name);
+    TurnUpdate(
+      interaction,
+      gameState.players[gameState.currentPlayerIndex],
+      gameState
+    );
+  }, 30000); // 30 seconds
 }

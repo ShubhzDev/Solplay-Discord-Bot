@@ -25,7 +25,7 @@ export class GameManager {
           currentCard: initialCard,
           players: [],
           currentPlayerIndex: 0,
-          direction: 0,
+          direction: 1,
           deck: deck,
           isActive:false,
         });
