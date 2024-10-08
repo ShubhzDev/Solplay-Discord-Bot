@@ -26,6 +26,7 @@ import {
 } from "./card";
 import { displayCurrentCard } from "./game";
 import { channel } from "diagnostics_channel";
+import { WildType } from "./card";
 
 export const manager = new GameManager();
 
@@ -463,7 +464,9 @@ async function PlayCardLogic(
       return actionInfo.color === cardColor && actionInfo.action === cardValue;
     } else if (card.type === CardType.WildCard) {
       const wildInfo = card.info as WildCardInfo;
-      return wildInfo.color === cardColor && wildInfo.wildType === cardValue;
+      wildReplyBtn(interaction,wildInfo.wildType);
+      return false;
+      // return wildInfo.color === cardColor && wildInfo.wildType === cardValue;
     }
     return false;
   });
@@ -484,6 +487,39 @@ async function PlayCardLogic(
       gameState
     );
   }
+}
+
+function wildReplyBtn(interaction:any,wildType:WildType){
+  const redBtn = new ButtonBuilder()
+  .setCustomId("redBtn")
+  .setLabel("Red")
+  .setStyle(ButtonStyle.Primary);
+
+  const greenBtn = new ButtonBuilder()
+  .setCustomId("greenBtn")
+  .setLabel("Green")
+  .setStyle(ButtonStyle.Primary);
+
+  const blueBtn = new ButtonBuilder()
+  .setCustomId("blueBtn")
+  .setLabel("Blue")
+  .setStyle(ButtonStyle.Primary);
+
+  const yellowBtn = new ButtonBuilder()
+  .setCustomId("yellowBtn")
+  .setLabel("Yellow");
+
+  const cancel = new ButtonBuilder()
+  .setCustomId("cancel")
+  .setLabel("Cancel");
+
+  const wildBtns = new ActionRowBuilder<ButtonBuilder>()
+  .addComponents(redBtn,greenBtn,blueBtn,yellowBtn,cancel);
+
+  interaction.update({
+    components:wildBtns,
+    ephemeral:true,
+  })
 }
 
 function DrawCardLogic(
