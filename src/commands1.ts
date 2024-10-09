@@ -4,6 +4,7 @@ import {
   AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
+  Colors,
   Component,
   EmbedBuilder,
 } from "discord.js";
@@ -18,6 +19,7 @@ import { TextChannel } from "discord.js";
 import { GameManager } from "./GameManager";
 import {
   ActionCardInfo,
+  CardColor,
   CardNumber,
   CardType,
   getCardImg,
@@ -27,6 +29,7 @@ import {
 import { displayCurrentCard } from "./game";
 import { channel } from "diagnostics_channel";
 import { WildType } from "./card";
+import { Console } from "console";
 
 export const manager = new GameManager();
 
@@ -37,6 +40,7 @@ enum ButtonId {
   Leave = "leave",
   Play = "play",
   Draw = "draw",
+  Wild = "wild",
 }
 
 export let gameState: GameState;
@@ -334,7 +338,7 @@ export async function HandleInteractions(
   interaction: any,
   channel: TextChannel
 ) {
-  const [id, cardColor, cardValue] = interaction.customId.split("_");
+  let [id, cardColor, cardValue] = interaction.customId.split("_");
   const userId = interaction.user.id;
   const userName = interaction.user.username;
   let gameState: GameState | undefined = manager.getGameState("game1");
@@ -406,7 +410,6 @@ export async function HandleInteractions(
           await PlayCardLogic(interaction, cardColor, cardValue, gameState);
           // Update the UI for the next player's turn
           // displayCurrentCard(channel, gameState);
-          updateAllPlayersValidCards(interaction, gameState);
         }
       }
       break;
@@ -417,6 +420,21 @@ export async function HandleInteractions(
         if (player && gameState) {
           DrawCardLogic(interaction, cardColor, cardValue, gameState);
           updateAllPlayersValidCards(interaction, gameState);
+        }
+      }
+      break;
+
+    case ButtonId.Wild:
+      {
+        const { player, gameState } = getPlayerfromId(userId, "game1");
+        if (player && gameState) {
+          console.log("ButtonId.Wild ====");
+          console.log("cardColor ", cardColor);
+          console.log("cardValue ", cardValue);
+          console.log("interaction.customId ", interaction.customId);
+
+          await PlayCardLogic(interaction, cardColor, cardValue, gameState);
+          // updateAllPlayersValidCards(interaction, gameState);
         }
       }
       break;
@@ -464,62 +482,85 @@ async function PlayCardLogic(
       return actionInfo.color === cardColor && actionInfo.action === cardValue;
     } else if (card.type === CardType.WildCard) {
       const wildInfo = card.info as WildCardInfo;
-      wildReplyBtn(interaction,wildInfo.wildType);
-      return false;
-      // return wildInfo.color === cardColor && wildInfo.wildType === cardValue;
+      console.log("wildInfo.color ", wildInfo.color);
+      console.log("wildInfo.wildType ", wildInfo.wildType);
+      if (wildInfo.color != cardColor) {
+        wildInfo.color = cardColor as CardColor;
+      }
+      return wildInfo.color === cardColor && wildInfo.wildType === cardValue;
     }
     return false;
   });
 
   if (playedCard) {
-    gameState.currentCard = playedCard;
-    currentPlayer.cards = currentPlayer.cards.filter(
-      (card) => card != playedCard
-    );
+    console.log("CCCCCCCC");
 
-    // Change turn to next player
-    gameState.currentPlayerIndex =
-      (gameState.currentPlayerIndex + 1) % gameState.players.length;
+    if (playedCard.type === CardType.WildCard && cardColor == CardColor.Black) {
+      console.log("AAAAAAA");
+      clearTimeout(turnTimer);
+      const wildInfo = playedCard.info as WildCardInfo;
+      wildReplyBtn(interaction, wildInfo.wildType, cardValue);
+    } else {
+      console.log("BBBBBBB");
 
-    TurnUpdate(
-      interaction,
-      gameState.players[gameState.currentPlayerIndex],
-      gameState
-    );
+      gameState.currentCard = playedCard;
+      currentPlayer.cards = currentPlayer.cards.filter(
+        (card) => card != playedCard
+      );
+
+      // Change turn to next player
+      gameState.currentPlayerIndex =
+        (gameState.currentPlayerIndex + 1) % gameState.players.length;
+
+      TurnUpdate(
+        interaction,
+        gameState.players[gameState.currentPlayerIndex],
+        gameState
+      );
+
+      updateAllPlayersValidCards(interaction, gameState);
+    }
   }
 }
 
-function wildReplyBtn(interaction:any,wildType:WildType){
+async function wildReplyBtn(
+  interaction: any,
+  wildType: WildType,
+  cardValue: string
+) {
   const redBtn = new ButtonBuilder()
-  .setCustomId("redBtn")
-  .setLabel("Red")
-  .setStyle(ButtonStyle.Primary);
+    .setCustomId("wild_Red_" + cardValue)
+    .setLabel("Red")
+    .setStyle(ButtonStyle.Primary);
 
   const greenBtn = new ButtonBuilder()
-  .setCustomId("greenBtn")
-  .setLabel("Green")
-  .setStyle(ButtonStyle.Primary);
+    .setCustomId("wild_Green_" + cardValue)
+    .setLabel("Green")
+    .setStyle(ButtonStyle.Primary);
 
   const blueBtn = new ButtonBuilder()
-  .setCustomId("blueBtn")
-  .setLabel("Blue")
-  .setStyle(ButtonStyle.Primary);
+    .setCustomId("wild_Blue_" + cardValue)
+    .setLabel("Blue")
+    .setStyle(ButtonStyle.Primary);
 
   const yellowBtn = new ButtonBuilder()
-  .setCustomId("yellowBtn")
-  .setLabel("Yellow");
+    .setCustomId("wild_Yellow_" + cardValue)
+    .setLabel("Yellow")
+    .setStyle(ButtonStyle.Primary);
 
-  const cancel = new ButtonBuilder()
-  .setCustomId("cancel")
-  .setLabel("Cancel");
+  // const cancel = new ButtonBuilder().setCustomId("cancel").setLabel("Cancel");
 
-  const wildBtns = new ActionRowBuilder<ButtonBuilder>()
-  .addComponents(redBtn,greenBtn,blueBtn,yellowBtn,cancel);
+  const wildBtns = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    redBtn,
+    greenBtn,
+    blueBtn,
+    yellowBtn
+  );
 
-  interaction.update({
-    components:wildBtns,
-    ephemeral:true,
-  })
+  await interaction.update({
+    components: [wildBtns],
+    ephemeral: true,
+  });
 }
 
 function DrawCardLogic(
@@ -641,9 +682,9 @@ async function TurnUpdate(
     await message.edit({ embeds: [embedded], components: [] });
   }
 
-  StartTimer(interaction,gameState);
+  StartTimer(interaction, gameState);
 }
-let turnTimer : any; // Variable to store the timer ID
+let turnTimer: any; // Variable to store the timer ID
 
 function StartTimer(interaction: any, gameState: GameState) {
   // Clear the existing timer if it is already running
@@ -656,7 +697,10 @@ function StartTimer(interaction: any, gameState: GameState) {
     // Move to the next player
     nextPlayer(gameState);
 
-    console.log("Next player: ", gameState.players[gameState.currentPlayerIndex].name);
+    console.log(
+      "Next player: ",
+      gameState.players[gameState.currentPlayerIndex].name
+    );
     TurnUpdate(
       interaction,
       gameState.players[gameState.currentPlayerIndex],

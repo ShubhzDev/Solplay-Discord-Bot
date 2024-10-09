@@ -21,10 +21,10 @@ export interface GameState {
   currentPlayerIndex: number;
   direction: number; // 1 for clockwise, -1 for counter-clockwise
   deck: Card[]; // Add the deck to the game state
-  isActive : boolean,
+  isActive: boolean;
 }
 
-import {manager} from "./commands1";
+import { manager } from "./commands1";
 
 // Function to initialize the game state
 // export function initializeGame(players: Player[]): GameState {
@@ -74,7 +74,7 @@ function createPlayer(playerId: string, playerName: string): Player {
     id: playerId,
     name: playerName,
     cards: [],
-    interaction:null,
+    interaction: null,
   };
   return player;
 }
@@ -109,10 +109,9 @@ export function showValidCards(gameState: GameState, cards: Card[]): Card[] {
     const card = cards[i];
 
     if (card.type === CardType.NumberCard) {
+      const currentCardInfo = gameState.currentCard.info as NumberCardInfo; // Type assertion
+      const cardInfo = card.info as NumberCardInfo; // Type assertion
       if (gameState.currentCard.type === CardType.NumberCard) {
-        const currentCardInfo = gameState.currentCard.info as NumberCardInfo; // Type assertion
-        const cardInfo = card.info as NumberCardInfo; // Type assertion
-
         if (cardInfo.color === currentCardInfo.color) {
           enabledCard.push(card);
         }
@@ -120,6 +119,9 @@ export function showValidCards(gameState: GameState, cards: Card[]): Card[] {
         if (cardInfo.number === currentCardInfo.number) {
           enabledCard.push(card);
         }
+      }
+      if (cardInfo.color === currentCardInfo.color) {
+        enabledCard.push(card);
       }
     } else if (gameState.currentCard.type === CardType.ActionCard) {
       const currentCardInfo = gameState.currentCard.info as ActionCardInfo; // Type assertion
@@ -129,6 +131,9 @@ export function showValidCards(gameState: GameState, cards: Card[]): Card[] {
         card.type === CardType.ActionCard &&
         cardInfo.action === currentCardInfo.action
       ) {
+        enabledCard.push(card);
+      }
+      if (cardInfo.color === currentCardInfo.color) {
         enabledCard.push(card);
       }
     }
@@ -144,8 +149,8 @@ export function showValidCards(gameState: GameState, cards: Card[]): Card[] {
 // Function to deal cards to players
 export function dealCards(gameState: GameState, numberOfCards: number): void {
   // Deal cards to each player
-  for (const player of gameState.players){
-    console.log("Dealing Cards to Player : ",player.name);
+  for (const player of gameState.players) {
+    console.log("Dealing Cards to Player : ", player.name);
     for (let i = 0; i < numberOfCards; i++) {
       const card = gameState.deck.pop(); // Get the last card from the deck
       if (card) {
