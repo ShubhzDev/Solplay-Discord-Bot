@@ -19,6 +19,7 @@ import { TextChannel } from "discord.js";
 import { GameManager } from "./GameManager";
 import {
   ActionCardInfo,
+  ActionType,
   CardColor,
   CardNumber,
   CardType,
@@ -500,6 +501,90 @@ async function PlayCardLogic(
       clearTimeout(turnTimer);
       const wildInfo = playedCard.info as WildCardInfo;
       wildReplyBtn(interaction, wildInfo.wildType, cardValue);
+    } else if (
+      playedCard.type === CardType.WildCard &&
+      cardColor != CardColor.Black
+    ) {
+      gameState.currentCard = playedCard;
+      currentPlayer.cards = currentPlayer.cards.filter(
+        (card) => card != playedCard
+      );
+
+      // Change turn to next player
+      // gameState.currentPlayerIndex =
+      //   (gameState.currentPlayerIndex + 1) % gameState.players.length;
+      nextPlayer(gameState);
+
+      for (let index = 0; index < 4; index++) {
+        const drawnCard = gameState.deck.pop();
+        const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+
+        if (drawnCard) {
+          currentPlayer.cards.push(drawnCard);
+        }
+      }
+
+      TurnUpdate(
+        interaction,
+        gameState.players[gameState.currentPlayerIndex],
+        gameState
+      );
+
+      updateAllPlayersValidCards(interaction, gameState);
+    } else if (playedCard.type === CardType.ActionCard) {
+      console.log("DDDDDD");
+      if (cardValue === ActionType.Skip) {
+        nextPlayer(gameState);
+        TurnUpdate(
+          interaction,
+          gameState.players[gameState.currentPlayerIndex],
+          gameState
+        );
+      } else if (cardValue === ActionType.Reverse) {
+        gameState.direction = -1 * gameState.direction;
+
+        gameState.currentCard = playedCard;
+        currentPlayer.cards = currentPlayer.cards.filter(
+          (card) => card != playedCard
+        );
+
+        // Change turn to next player
+        // gameState.currentPlayerIndex =
+        //   (gameState.currentPlayerIndex + 1) % gameState.players.length;
+        nextPlayer(gameState);
+
+        TurnUpdate(
+          interaction,
+          gameState.players[gameState.currentPlayerIndex],
+          gameState
+        );
+
+        updateAllPlayersValidCards(interaction, gameState);
+      } else if (cardValue === ActionType.PlusTwo) {
+        gameState.currentCard = playedCard;
+        currentPlayer.cards = currentPlayer.cards.filter(
+          (card) => card != playedCard
+        );
+
+        nextPlayer(gameState);
+
+        for (let index = 0; index < 2; index++) {
+          const drawnCard = gameState.deck.pop();
+          const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+
+          if (drawnCard) {
+            currentPlayer.cards.push(drawnCard);
+          }
+        }
+
+        TurnUpdate(
+          interaction,
+          gameState.players[gameState.currentPlayerIndex],
+          gameState
+        );
+
+        updateAllPlayersValidCards(interaction, gameState);
+      }
     } else {
       console.log("BBBBBBB");
 
@@ -509,8 +594,9 @@ async function PlayCardLogic(
       );
 
       // Change turn to next player
-      gameState.currentPlayerIndex =
-        (gameState.currentPlayerIndex + 1) % gameState.players.length;
+      // gameState.currentPlayerIndex =
+      //   (gameState.currentPlayerIndex + 1) % gameState.players.length;
+      nextPlayer(gameState);
 
       TurnUpdate(
         interaction,
@@ -684,6 +770,7 @@ async function TurnUpdate(
 
   StartTimer(interaction, gameState);
 }
+
 let turnTimer: any; // Variable to store the timer ID
 
 function StartTimer(interaction: any, gameState: GameState) {
