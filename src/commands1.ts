@@ -27,8 +27,7 @@ import {
   NumberCardInfo,
   WildCardInfo,
 } from "./card";
-import { displayCurrentCard } from "./game";
-import { channel } from "diagnostics_channel";
+
 import { WildType } from "./card";
 import { Console } from "console";
 
