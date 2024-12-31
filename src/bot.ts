@@ -1,6 +1,13 @@
-import { Client, Events, REST, Routes } from 'discord.js';
-import { commands } from './commands';
+import { Client, Events, REST, Routes, CommandInteraction, Collection } from 'discord.js';
+import { commands } from './commands/index';
 import { GameManager } from './managers/GameManager';
+
+interface Command {
+  data: {
+    toJSON(): unknown;
+  };
+  execute(interaction: CommandInteraction, gameManager: GameManager): Promise<void>;
+}
 
 export async function setupCommands(client: Client) {
   const gameManager = new GameManager();
@@ -18,8 +25,9 @@ export async function setupCommands(client: Client) {
 
     try {
       console.log('Started refreshing application (/) commands.');
+      const commandsArray = Array.from(commands.values()) as Command[];
       await rest.put(Routes.applicationCommands(client.user.id), {
-        body: [...commands.values()].map(command => command.data.toJSON()),
+        body: commandsArray.map(command => command.data.toJSON()),
       });
       console.log('Successfully reloaded application (/) commands.');
     } catch (error) {
@@ -31,7 +39,7 @@ export async function setupCommands(client: Client) {
   client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isCommand()) return;
 
-    const command = commands.get(interaction.commandName);
+    const command = commands.get(interaction.commandName) as Command | undefined;
     if (!command) return;
 
     try {

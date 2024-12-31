@@ -354,7 +354,7 @@ export async function HandleInteractions(
           if (gameState.players.length == 2 && !gameState.isActive) {
             gameState.isActive = true;
             console.log("gameState.players.length ", gameState.players.length);
-            startGame(interaction, gameState);
+            startGame(gameState);
             const { player } = getPlayerfromId(userId, "game1");
             if (player) {
               ShowDisplayButtons(interaction, gameState);
