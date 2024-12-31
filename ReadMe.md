@@ -1,2 +1,3 @@
-npm install && npx tsc
-node dist/index.js
+npm install
+npx tsc
+node dist/bot.js

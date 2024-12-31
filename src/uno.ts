@@ -1,8 +1,8 @@
 // uno.ts
 
-// import { Card ,CardType,ActionType,CardColor} from './card';
-// import { GameState, initializeGame, updateCurrentCard, nextPlayer } from './gameState';
-// import { Player } from './player';
+import { Card ,CardType,ActionType,CardColor} from './card';
+import { GameState, initializeGame, updateCurrentCard, nextPlayer } from './gameState';
+import { Player } from './player';
 
 // Example usage of the game logic
 // const players: Player[] = [

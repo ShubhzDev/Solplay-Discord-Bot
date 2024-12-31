@@ -1,6 +1,6 @@
 import { Card, createDeck, shuffleDeck } from "./card";
 import { gameState } from "./commands1";
-import { GameState } from "./gameState";
+import { AddPlayer, GameState } from "./gameState";
 import { Player } from "./player";
 
 export class GameManager {

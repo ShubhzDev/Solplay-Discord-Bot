@@ -1,90 +1,161 @@
-// gameState.ts
-import { Card, CardType, CardColor, NumberCardInfo, ActionCardInfo, shuffleDeck } from './card';
-import { Player } from './player';
+// src/gameState.ts
+
+import { TextChannel } from "discord.js";
+import {
+  Card,
+  createDeck,
+  shuffleDeck,
+  CardType,
+  CardNumber,
+  CardColor,
+  ActionCardInfo,
+  NumberCardInfo,
+} from "./card";
+import { gameState } from "./commands1";
+import { displayCurrentCard } from "./game";
+import { Player } from "./player";
 
 export interface GameState {
   currentCard: Card;
   players: Player[];
   currentPlayerIndex: number;
-  direction: number;
-  deck: Card[];
+  direction: number; // 1 for clockwise, -1 for counter-clockwise
+  deck: Card[]; // Add the deck to the game state
   isActive: boolean;
-  lastPlayedCard?: Card;
 }
 
-export function startGame(gameState: GameState): void {
-  if (!gameState.isActive && gameState.players.length >= 2) {
-    gameState.isActive = true;
-    dealCards(gameState, 7);
-    
-    // Set initial card that's not a wild or action card
-    do {
-      const card = gameState.deck.pop();
-      if (card && card.type === CardType.NumberCard) {
-        gameState.currentCard = card;
-        break;
-      } else if (card) {
-        gameState.deck.unshift(card);
-      }
-    } while (gameState.deck.length > 0);
+import { manager } from "./commands1";
+
+// Function to initialize the game state
+// export function initializeGame(players: Player[]): GameState {
+//   const initialCard: Card = {
+//     type: CardType.NumberCard,
+//     info: {
+//       number: CardNumber.Zero,
+//       color: CardColor.Red
+//     },
+//     id: CardColor.Red + CardNumber.Zero,
+//   };
+
+//   const deck = shuffleDeck(createDeck()); // Create and shuffle the deck
+
+//   return {
+//     currentCard: initialCard,
+//     players: players,
+//     currentPlayerIndex: 0,
+//     direction: 1,
+//     deck: deck, // Initialize the deck in the game state
+//   };
+// }
+
+export function startGame(interaction: any, gameState: GameState) {
+  console.log("started game......");
+  // initializeGame(gameState.players, gameState);
+  dealCards(gameState, 7);
+  const textChannel = interaction.channel as TextChannel;
+  // displayCurrentCard(textChannel, gameState);
+}
+
+export function initializeGame(players: Player[], gameState: GameState) {
+  const deck = shuffleDeck(createDeck()); // Create and shuffle the deck
+
+  const initialCard: Card | undefined = gameState.deck.pop();
+  dealCards(gameState, 7); // Deal 7 cards to each player
+
+  if (initialCard) {
+    (gameState.currentCard = initialCard), (gameState.players = players);
+    gameState.currentPlayerIndex = 0;
   }
 }
 
-export function dealCards(gameState: GameState, numberOfCards: number): void {
-  gameState.players.forEach(player => {
-    for (let i = 0; i < numberOfCards; i++) {
-      const card = gameState.deck.pop();
-      if (card) {
-        player.cards.push(card);
+//created player
+function createPlayer(playerId: string, playerName: string): Player {
+  const player: Player = {
+    id: playerId,
+    name: playerName,
+    cards: [],
+    interaction: null,
+  };
+  return player;
+}
+
+//added player
+export function AddPlayer(
+  playerId: string,
+  playerName: string,
+  gameId: string
+) {
+  manager.addPlayer(playerId, playerName, gameId);
+}
+
+// Function to update the current card
+export function updateCurrentCard(gameState: GameState, newCard: Card): void {
+  gameState.currentCard = newCard;
+}
+
+// Function to move to the next player
+export function nextPlayer(gameState: GameState): void {
+  gameState.currentPlayerIndex =
+    (gameState.currentPlayerIndex +
+      gameState.direction +
+      gameState.players.length) %
+    gameState.players.length;
+}
+
+// Function to show valid cards that can be played
+export function showValidCards(gameState: GameState, cards: Card[]): Card[] {
+  let enabledCard: Card[] = [];
+  for (let i = 0; i < cards.length; i++) {
+    const card = cards[i];
+
+    if (card.type === CardType.NumberCard) {
+      const currentCardInfo = gameState.currentCard.info as NumberCardInfo; // Type assertion
+      const cardInfo = card.info as NumberCardInfo; // Type assertion
+      if (gameState.currentCard.type === CardType.NumberCard) {
+        if (cardInfo.color === currentCardInfo.color) {
+          enabledCard.push(card);
+        }
+
+        if (cardInfo.number === currentCardInfo.number) {
+          enabledCard.push(card);
+        }
+      }
+      if (cardInfo.color === currentCardInfo.color) {
+        enabledCard.push(card);
+      }
+    } else if (gameState.currentCard.type === CardType.ActionCard) {
+      const currentCardInfo = gameState.currentCard.info as ActionCardInfo; // Type assertion
+      const cardInfo = card.info as ActionCardInfo; // Type assertion
+
+      if (
+        card.type === CardType.ActionCard &&
+        cardInfo.action === currentCardInfo.action
+      ) {
+        enabledCard.push(card);
+      }
+      if (cardInfo.color === currentCardInfo.color) {
+        enabledCard.push(card);
       }
     }
-  });
-}
 
-export function nextPlayer(gameState: GameState): void {
-  const playerCount = gameState.players.length;
-  gameState.currentPlayerIndex = (gameState.currentPlayerIndex + gameState.direction + playerCount) % playerCount;
-}
-
-export function isValidPlay(currentCard: Card, playedCard: Card): boolean {
-  if (playedCard.type === CardType.WildCard) return true;
-
-  if (currentCard.type === CardType.NumberCard && playedCard.type === CardType.NumberCard) {
-    const currentInfo = currentCard.info as NumberCardInfo;
-    const playedInfo = playedCard.info as NumberCardInfo;
-    return currentInfo.color === playedInfo.color || currentInfo.number === playedInfo.number;
+    if (card.type === CardType.WildCard) {
+      enabledCard.push(card);
+    }
   }
 
-  if (currentCard.type === CardType.ActionCard && playedCard.type === CardType.ActionCard) {
-    const currentInfo = currentCard.info as ActionCardInfo;
-    const playedInfo = playedCard.info as ActionCardInfo;
-    return currentInfo.color === playedInfo.color || currentInfo.action === playedInfo.action;
-  }
-
-  if (currentCard.type === CardType.NumberCard && playedCard.type === CardType.ActionCard) {
-    return (currentCard.info as NumberCardInfo).color === (playedCard.info as ActionCardInfo).color;
-  }
-
-  if (currentCard.type === CardType.ActionCard && playedCard.type === CardType.NumberCard) {
-    return (currentCard.info as ActionCardInfo).color === (playedCard.info as NumberCardInfo).color;
-  }
-
-  return false;
+  return enabledCard;
 }
 
-export function showValidCards(gameState: GameState, cards: Card[]): Card[] {
-  return cards.filter(card => isValidPlay(gameState.currentCard, card));
-}
-
-export function checkWinner(player: Player): boolean {
-  return player.cards.length === 0;
-}
-
-export function reshuffleDeckIfNeeded(gameState: GameState): void {
-  if (gameState.deck.length < 4) {
-    const lastCard = gameState.currentCard;
-    const newDeck = shuffleDeck([...gameState.deck, gameState.currentCard]);
-    gameState.deck = newDeck;
-    gameState.currentCard = lastCard;
+// Function to deal cards to players
+export function dealCards(gameState: GameState, numberOfCards: number): void {
+  // Deal cards to each player
+  for (const player of gameState.players) {
+    console.log("Dealing Cards to Player : ", player.name);
+    for (let i = 0; i < numberOfCards; i++) {
+      const card = gameState.deck.pop(); // Get the last card from the deck
+      if (card) {
+        player.cards.push(card); // Add the card to the player's hand
+      }
+    }
   }
 }
