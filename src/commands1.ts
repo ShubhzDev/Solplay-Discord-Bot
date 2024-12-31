@@ -9,7 +9,6 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import {
-  AddPlayer,
   GameState,
   nextPlayer,
   showValidCards,

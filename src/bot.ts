@@ -1,117 +1,47 @@
-// src/bot.ts
-import {
-  Client,
-  GatewayIntentBits,
-  Events,
-  REST,
-  Routes,
-  TextChannel,
-  ComponentType,
-} from "discord.js";
-import {
-  SendUnoJoinInvitationToAllPlayers,
-  HandleInteractions,
-  gameState,
-  ShowDisplayButtons,
-} from "./commands1"; // Import the command handling function
-import * as dotenv from "dotenv";
+import { Client, Events, REST, Routes } from 'discord.js';
+import { commands } from './commands';
+import { GameManager } from './managers/GameManager';
 
-dotenv.config(); // Load environment variables from .env file
+export async function setupCommands(client: Client) {
+  const gameManager = new GameManager();
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-  ],
-});
-
-// Register the slash command
-const commands = [
-  {
-    name: "uno",
-    description: "Start a game of Uno",
-    // options: [
-    //   {
-    //     name: "player1",
-    //     description: "First player to join the game",
-    //     type: 6, // ApplicationCommandOptionType.User
-    //     required: true,
-    //   },
-    //   {
-    //     name: "player2",
-    //     description: "Second player to join the game",
-    //     type: 6, // ApplicationCommandOptionType.User
-    //     required: true,
-    //   },
-    // ],
-  },
-];
-
-if (process.env.DISCORD_BOT_TOKEN) {
-  const rest = new REST({ version: "9" }).setToken(
-    process.env.DISCORD_BOT_TOKEN
-  );
-
+  // Register commands
   client.once(Events.ClientReady, async () => {
     console.log(`Logged in as ${client.user?.tag}`);
+    
+    if (!client.user) {
+      console.error('Client user is undefined');
+      return;
+    }
+
+    const rest = new REST().setToken(process.env.DISCORD_BOT_TOKEN!);
 
     try {
-      console.log("Started refreshing application (/) commands.");
-
-      // Check if client.user is defined before using its id
-      if (client.user) {
-        await rest.put(Routes.applicationCommands(client.user.id), {
-          body: commands,
-        });
-        console.log("Successfully reloaded application (/) commands.");
-      } else {
-        console.error("Client user is undefined. Cannot register commands.");
-      }
+      console.log('Started refreshing application (/) commands.');
+      await rest.put(Routes.applicationCommands(client.user.id), {
+        body: [...commands.values()].map(command => command.data.toJSON()),
+      });
+      console.log('Successfully reloaded application (/) commands.');
     } catch (error) {
-      console.error("Error registering commands:", error);
+      console.error('Error refreshing commands:', error);
     }
   });
 
-  // Handle interactions
-  client.on(Events.InteractionCreate, async (interaction: any) => {
-    console.log("interaction " + interaction);
+  // Handle command interactions
+  client.on(Events.InteractionCreate, async interaction => {
+    if (!interaction.isCommand()) return;
 
-    // if (!interaction.isCommand()) return;
+    const command = commands.get(interaction.commandName);
+    if (!command) return;
 
-    switch (interaction.commandName) {
-      case "uno":
-        SendUnoJoinInvitationToAllPlayers(interaction);
-        break;
-      // case "join":
-      //   ShowDisplayButtons(interaction);
-      //   break;
-      default:
-      // await interaction.reply({
-      //   content: "Unknown command.",
-      //   ephemeral: true,
-      // });
-    }
-
-    if (interaction.isButton()) {
-      console.log("interaction.customId " + interaction.customId);
-      // if (interaction.customId === "join") {
-      //   if (gameState.players.length == 2) {
-      //     //start game
-      //     DisplayPlayerOwnCards(interaction, player, gameState);
-      //   } else if (gameState.players.length < 2) {
-      //     ShowDisplayButtons(interaction);
-      //   }
-      // } else if (interaction.customId === "view") {
-      // } else if (interaction.customId === "view") {
-      //   // DisplayPlayerOwnCards(interaction);
-      // }
-      HandleInteractions(interaction,interaction.channel);
+    try {
+      await command.execute(interaction, gameManager);
+    } catch (error) {
+      console.error('Error executing command:', error);
+      await interaction.reply({
+        content: 'There was an error executing this command!',
+        ephemeral: true,
+      });
     }
   });
-
-  // Start the bot
-  client.login(process.env.DISCORD_BOT_TOKEN);
-} else {
-  console.error("DISCORD_BOT_TOKEN environment variable is not defined.");
 }
