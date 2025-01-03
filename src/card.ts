@@ -200,7 +200,13 @@ export function getCardImg(card: Card) {
     return baseUrl + cardName + ".png";
   } else if (card.type === CardType.WildCard) {
     const cardInfo = card.info as WildCardInfo;
-    cardName = cardInfo.color + cardInfo.wildType;
-    return baseUrl + cardName;
+    console.log("//////////",cardInfo.wildType);
+    if(cardInfo.wildType === "wi; || cardInfo.wildType === "PlusFourAndColorChange"){
+      cardName = cardInfo.color + "Wild";
+    }
+    else{
+      cardName = cardInfo.color + cardInfo.wildType;
+    }
+    return baseUrl + cardName+ ".png";
   }
 }

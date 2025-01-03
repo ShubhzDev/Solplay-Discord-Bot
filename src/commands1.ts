@@ -41,6 +41,7 @@ enum ButtonId {
   Play = "play",
   Draw = "draw",
   Wild = "wild",
+  Pass = "Pass",
 }
 
 export let gameState: GameState;
@@ -414,12 +415,26 @@ export async function HandleInteractions(
       }
       break;
 
-    case ButtonId.Draw:
+    case ButtonId.Draw: {
+      const { player, gameState } = getPlayerfromId(userId, "game1");
+      if (player && gameState) {
+        DrawCardLogic(interaction, cardColor, cardValue, gameState);
+        updateAllPlayersValidCards(interaction, gameState);
+      }
+    }
+    case ButtonId.Pass:
       {
         const { player, gameState } = getPlayerfromId(userId, "game1");
         if (player && gameState) {
-          DrawCardLogic(interaction, cardColor, cardValue, gameState);
-          updateAllPlayersValidCards(interaction, gameState);
+          nextPlayer(gameState);
+
+          TurnUpdate(
+            interaction,
+            gameState.players[gameState.currentPlayerIndex],
+            gameState
+          );
+
+          // updateAllPlayersValidCards(interaction, gameState);
         }
       }
       break;
@@ -431,6 +446,9 @@ export async function HandleInteractions(
           console.log("ButtonId.Wild ====");
           console.log("cardColor ", cardColor);
           console.log("cardValue ", cardValue);
+          // if (cardValue === "ColorChange") {
+          //   cardValue = "Wild";
+          // }
           console.log("interaction.customId ", interaction.customId);
 
           await PlayCardLogic(interaction, cardColor, cardValue, gameState);
@@ -484,9 +502,12 @@ async function PlayCardLogic(
       const wildInfo = card.info as WildCardInfo;
       console.log("wildInfo.color ", wildInfo.color);
       console.log("wildInfo.wildType ", wildInfo.wildType);
+      clearTimeout(turnTimer);
+
       if (wildInfo.color != cardColor) {
         wildInfo.color = cardColor as CardColor;
       }
+
       return wildInfo.color === cardColor && wildInfo.wildType === cardValue;
     }
     return false;
@@ -494,16 +515,20 @@ async function PlayCardLogic(
 
   if (playedCard) {
     console.log("CCCCCCCC");
-
     if (playedCard.type === CardType.WildCard && cardColor == CardColor.Black) {
       console.log("AAAAAAA");
-      clearTimeout(turnTimer);
+      // clearTimeout(turnTimer);
       const wildInfo = playedCard.info as WildCardInfo;
       wildReplyBtn(interaction, wildInfo.wildType, cardValue);
     } else if (
       playedCard.type === CardType.WildCard &&
       cardColor != CardColor.Black
     ) {
+      //cards already plasyed
+      // if (cardValue === "ColorChange") {
+      //   cardValue = "Wild";
+      // }
+      
       gameState.currentCard = playedCard;
       currentPlayer.cards = currentPlayer.cards.filter(
         (card) => card != playedCard
@@ -522,6 +547,7 @@ async function PlayCardLogic(
           currentPlayer.cards.push(drawnCard);
         }
       }
+      // if(gameState.currentCard.
 
       TurnUpdate(
         interaction,
@@ -613,6 +639,7 @@ async function wildReplyBtn(
   wildType: WildType,
   cardValue: string
 ) {
+  // cardValue = "Wild";
   const redBtn = new ButtonBuilder()
     .setCustomId("wild_Red_" + cardValue)
     .setLabel("Red")
@@ -734,7 +761,7 @@ async function TurnUpdate(
   }
 
   let url: string | undefined =
-    "https://raw.githubusercontent.com/WilliamWelsh/UNO/main/images/" +
+    "https://raw.githubusercontent.com/ShubhzDev/solana-assets/main/unoCards/images/" +
     getCardImg(gameState.currentCard);
 
   console.log("url", url);
